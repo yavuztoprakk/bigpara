@@ -56,20 +56,22 @@ const s = StyleSheet.create({
 	container: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginHorizontal: 12,
-		marginVertical: 8,
+		marginHorizontal: 10,
+		// Liste alanından ufak boşluk + tab bar'a yakın dursun.
+		marginTop: 6,
+		marginBottom: 8,
 		paddingHorizontal: 12,
-		paddingVertical: 10,
-		borderRadius: 12,
+		paddingVertical: 9,
+		borderRadius: 14,
 		borderWidth: StyleSheet.hairlineWidth,
 		...Platform.select({
 			ios: {
 				shadowColor: ACCENT,
-				shadowOffset: { width: 0, height: 2 },
-				shadowOpacity: 0.12,
-				shadowRadius: 6,
+				shadowOffset: { width: 0, height: 4 },
+				shadowOpacity: 0.18,
+				shadowRadius: 10,
 			},
-			android: { elevation: 1 },
+			android: { elevation: 3 },
 		}),
 	},
 	iconWrap: {
@@ -84,7 +86,7 @@ const s = StyleSheet.create({
 			ios: {
 				shadowColor: ACCENT,
 				shadowOffset: { width: 0, height: 2 },
-				shadowOpacity: 0.3,
+				shadowOpacity: 0.35,
 				shadowRadius: 4,
 			},
 			android: { elevation: 2 },

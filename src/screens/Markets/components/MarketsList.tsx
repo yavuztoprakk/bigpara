@@ -31,19 +31,24 @@ const MarketsList: React.FC<Props> = ({ navigation }) => {
   }, [navigation, onSelectSymbol]);
 
   return (
-    <>
+    <View style={s.container}>
       <PushNotificationRedirector navigation={navigation} />
+      <View style={s.listArea}>
+        <ListContainer />
+      </View>
       {isDemo && <ListDelayedBadge navigation={navigation} />}
-      <ListContainer />
       <HeaderSwitcherResultsContainer
         position="right"
         onSelect={onSelectSymbol}
       />
-    </>
+    </View>
   );
 };
 
 const s = StyleSheet.create({
+  container: { flex: 1 },
+  // Liste, badge ve tab bar üstüne kalan tüm alanı doldursun.
+  listArea: { flex: 1 },
   headerRight: { paddingRight: 15 },
 });
 

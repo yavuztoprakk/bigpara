@@ -92,9 +92,8 @@ const WatchList = ({ navigation }: { navigation: any }) => {
     }
   }, [lists[selectedIndex]?.codes]);
   return (
-    <>
+    <View style={styles.container}>
       <PushNotificationRedirector navigation={navigation} />
-
 
       <View style={styles.filterBar}>
         <SelectorTrigger
@@ -105,24 +104,27 @@ const WatchList = ({ navigation }: { navigation: any }) => {
         />
       </View>
 
+      <View style={styles.listArea}>
+        {lists[selectedIndex]?.codes?.length === 0 ? (
+          <Blank
+            onPressEdit={navigateToEdit}
+            canRemove={canRemove}
+            onPressRemove={handleRemove}
+          />
+        ) : (
+          <ListContainer
+            watchlist
+            codes={lists[selectedIndex]?.codes}
+            contentLoader={username === "akgck" ? null : true}
+            navigation={navigation}
+          />
+        )}
+      </View>
+
       {isDemo && lists[selectedIndex]?.codes?.length > 0 && (
         <ListDelayedBadge navigation={navigation} />
       )}
 
-      {lists[selectedIndex]?.codes?.length === 0 ? (
-        <Blank
-          onPressEdit={navigateToEdit}
-          canRemove={canRemove}
-          onPressRemove={handleRemove}
-        />
-      ) : (
-        <ListContainer
-          watchlist
-          codes={lists[selectedIndex]?.codes}
-          contentLoader={username === "akgck" ? null : true}
-          navigation={navigation}
-        />
-      )}
       {query ? (
         <HeaderSwitcherResultsContainer
           position="right"
@@ -131,15 +133,18 @@ const WatchList = ({ navigation }: { navigation: any }) => {
           }}
         />
       ) : null}
-    </>
+    </View>
   );
 };
 
 const createStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1 },
   filterBar: {
     borderTopWidth: 1,
     borderTopColor: theme.darkBrand,
   },
+  // Liste alanı kalan boşluğu kaplasın; badge altında doğal yer açılır.
+  listArea: { flex: 1 },
 });
 
 export default WatchList;
