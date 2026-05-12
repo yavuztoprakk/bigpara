@@ -16,13 +16,14 @@ const ListDelayedBadge: React.FC<Props> = ({ navigation }) => {
 
 	const handlePress = () => null; // navigation.navigate("InfoOpenAccount");
 
+	// Opak arka plan — altındaki satır içeriği görünmesin.
 	const containerStyle = {
-		backgroundColor: isDark ? "rgba(240,116,0,0.10)" : "rgba(240,116,0,0.08)",
-		borderColor: isDark ? "rgba(240,116,0,0.32)" : "rgba(240,116,0,0.28)",
+		backgroundColor: isDark ? "#2A1A0F" : "#FFF3E6",
+		borderColor: isDark ? "rgba(240,116,0,0.45)" : "rgba(240,116,0,0.35)",
 	};
 
-	const titleColor = isDark ? "#FFB978" : "#B85800";
-	const descColor = isDark ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.66)";
+	const titleColor = isDark ? "#FFB978" : "#A04A00";
+	const descColor = isDark ? "rgba(255,255,255,0.85)" : "rgba(60,30,0,0.78)";
 
 	return (
 		<TouchableOpacity
