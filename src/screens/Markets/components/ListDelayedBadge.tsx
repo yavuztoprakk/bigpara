@@ -1,19 +1,18 @@
 import React from "react";
-import { TouchableOpacity, View, StyleSheet, Platform } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
 import Text from "../../../components/Text";
 import { useTheme } from "../../../theme/ThemeContext";
 
 interface Props {
-	navigation: any;
+	// Geçmiş kullanımlarla uyumlu; bu sürümde kullanılmıyor.
+	navigation?: any;
 }
 
 const ACCENT = "#F07400";
 
-const ListDelayedBadge: React.FC<Props> = ({ navigation }) => {
+const ListDelayedBadge: React.FC<Props> = () => {
 	const { theme } = useTheme();
 	const isDark = theme.themeDetail === "dark";
-
-	const handlePress = () => null; // navigation.navigate("InfoOpenAccount");
 
 	// Opak arka plan — altındaki satır içeriği görünmesin.
 	const containerStyle = {
@@ -24,10 +23,10 @@ const ListDelayedBadge: React.FC<Props> = ({ navigation }) => {
 	const titleColor = isDark ? "#FFB978" : "#A04A00";
 	const descColor = isDark ? "rgba(255,255,255,0.85)" : "rgba(60,30,0,0.78)";
 
+	// pointerEvents="none" → altındaki liste satırına tap geçişini de engeller.
 	return (
-		<TouchableOpacity
-			activeOpacity={0.85}
-			onPress={handlePress}
+		<View
+			pointerEvents="none"
 			style={[s.container, containerStyle]}
 		>
 			<View style={s.body}>
@@ -44,7 +43,7 @@ const ListDelayedBadge: React.FC<Props> = ({ navigation }) => {
 					Canlı veri için müşteri girişi yapmanız gerekmektedir
 				</Text>
 			</View>
-		</TouchableOpacity>
+		</View>
 	);
 };
 
