@@ -239,6 +239,15 @@ export default function RootNavigation({ onNavigationStateChange }) {
   };
 
   const symbolArrayLength = async () => {
+    // B-4 fix: Eğer IdealClient WebSocket zaten OPEN (=1) durumdaysa, login
+    // çağrısı az önce LoginPassword/CompleteProfile/Welcome misafir akışından
+    // başarıyla tamamlanmış demektir. Tekrar login etmek var olan bağlantıyı
+    // kapatıp yeniden açar → çift WS bağlantısı + demo modu uyumsuzluğu.
+    // Sadece cold start (ws yok veya kapalı) durumunda login() çağırılır.
+    if (ws && ws.readyState === 1) {
+      return;
+    }
+
     let symbolLength = null;
     try {
       symbolLength = await AsyncStorage.getItem("@symbolDefinationlength");
