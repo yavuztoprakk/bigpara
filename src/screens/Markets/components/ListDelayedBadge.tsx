@@ -1,6 +1,5 @@
 import React from "react";
 import { TouchableOpacity, View, StyleSheet, Platform } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import Text from "../../../components/Text";
 import { useTheme } from "../../../theme/ThemeContext";
 
@@ -31,10 +30,6 @@ const ListDelayedBadge: React.FC<Props> = ({ navigation }) => {
 			onPress={handlePress}
 			style={[s.container, containerStyle]}
 		>
-			<View style={s.iconWrap}>
-				<Ionicons name="time-outline" size={14} color="#fff" />
-			</View>
-
 			<View style={s.body}>
 				<Text
 					allowFontScaling={false}
@@ -55,7 +50,6 @@ const ListDelayedBadge: React.FC<Props> = ({ navigation }) => {
 
 const s = StyleSheet.create({
 	container: {
-		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
 		marginHorizontal: 10,
@@ -76,27 +70,8 @@ const s = StyleSheet.create({
 			android: { elevation: 3 },
 		}),
 	},
-	iconWrap: {
-		width: 28,
-		height: 28,
-		borderRadius: 8,
-		backgroundColor: ACCENT,
-		alignItems: "center",
-		justifyContent: "center",
-		marginRight: 10,
-		...Platform.select({
-			ios: {
-				shadowColor: ACCENT,
-				shadowOffset: { width: 0, height: 2 },
-				shadowOpacity: 0.35,
-				shadowRadius: 4,
-			},
-			android: { elevation: 2 },
-		}),
-	},
 	body: {
 		alignItems: "center",
-		flexShrink: 1,
 	},
 	title: {
 		fontSize: 12.5,
