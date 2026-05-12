@@ -1,0 +1,108 @@
+import React from "react";
+import { TouchableOpacity, View, StyleSheet, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Text from "../../../components/Text";
+import { useTheme } from "../../../theme/ThemeContext";
+
+interface Props {
+	navigation: any;
+}
+
+const ACCENT = "#F07400";
+
+const ListDelayedBadge: React.FC<Props> = ({ navigation }) => {
+	const { theme } = useTheme();
+	const isDark = theme.themeDetail === "dark";
+
+	const handlePress = () => null; // navigation.navigate("InfoOpenAccount");
+
+	const containerStyle = {
+		backgroundColor: isDark ? "rgba(240,116,0,0.10)" : "rgba(240,116,0,0.08)",
+		borderColor: isDark ? "rgba(240,116,0,0.32)" : "rgba(240,116,0,0.28)",
+	};
+
+	const titleColor = isDark ? "#FFB978" : "#B85800";
+	const descColor = isDark ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.66)";
+
+	return (
+		<TouchableOpacity
+			activeOpacity={0.85}
+			onPress={handlePress}
+			style={[s.container, containerStyle]}
+		>
+			<View style={s.iconWrap}>
+				<Ionicons name="time-outline" size={14} color="#fff" />
+			</View>
+
+			<View style={s.body}>
+				<Text
+					allowFontScaling={false}
+					style={[s.title, { color: titleColor, fontFamily: theme.boldFont }]}
+				>
+					Veriler 15 dk. gecikmelidir
+				</Text>
+				<Text
+					allowFontScaling={false}
+					style={[s.desc, { color: descColor, fontFamily: theme.regularFont }]}
+				>
+					Canlı veri için müşteri girişi yapmanız gerekmektedir
+				</Text>
+			</View>
+		</TouchableOpacity>
+	);
+};
+
+const s = StyleSheet.create({
+	container: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginHorizontal: 12,
+		marginVertical: 8,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderRadius: 12,
+		borderWidth: StyleSheet.hairlineWidth,
+		...Platform.select({
+			ios: {
+				shadowColor: ACCENT,
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.12,
+				shadowRadius: 6,
+			},
+			android: { elevation: 1 },
+		}),
+	},
+	iconWrap: {
+		width: 28,
+		height: 28,
+		borderRadius: 8,
+		backgroundColor: ACCENT,
+		alignItems: "center",
+		justifyContent: "center",
+		marginRight: 10,
+		...Platform.select({
+			ios: {
+				shadowColor: ACCENT,
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.3,
+				shadowRadius: 4,
+			},
+			android: { elevation: 2 },
+		}),
+	},
+	body: {
+		flex: 1,
+	},
+	title: {
+		fontSize: 12.5,
+		letterSpacing: 0.2,
+		marginBottom: 2,
+	},
+	desc: {
+		fontSize: 11.5,
+		lineHeight: 15,
+		letterSpacing: 0.1,
+	},
+});
+
+export default ListDelayedBadge;
