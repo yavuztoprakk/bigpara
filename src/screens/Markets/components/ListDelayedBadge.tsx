@@ -57,12 +57,13 @@ const s = StyleSheet.create({
 	container: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
 		marginHorizontal: 10,
 		// Liste alanından ufak boşluk + tab bar'a yakın dursun.
 		marginTop: 6,
 		marginBottom: 8,
-		paddingHorizontal: 12,
-		paddingVertical: 9,
+		paddingHorizontal: 14,
+		paddingVertical: 10,
 		borderRadius: 14,
 		borderWidth: StyleSheet.hairlineWidth,
 		...Platform.select({
@@ -94,17 +95,20 @@ const s = StyleSheet.create({
 		}),
 	},
 	body: {
-		flex: 1,
+		alignItems: "center",
+		flexShrink: 1,
 	},
 	title: {
 		fontSize: 12.5,
 		letterSpacing: 0.2,
 		marginBottom: 2,
+		textAlign: "center",
 	},
 	desc: {
 		fontSize: 11.5,
 		lineHeight: 15,
 		letterSpacing: 0.1,
+		textAlign: "center",
 	},
 });
 
