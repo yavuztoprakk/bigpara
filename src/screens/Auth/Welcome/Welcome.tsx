@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Platform,
   Image,
-  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,6 +23,7 @@ import * as Application from "expo-application";
 import { useTheme } from "../../../theme/ThemeContext";
 import flashMessage from "../../../modules/flashMessage";
 import { login as IdealClientLogin } from "../../../modules/IdealClient/index";
+import { transitionOverlayRef } from "../../../modules/transitionOverlay";
 import store from "../../../store";
 import { initiateLogin } from "../modules/login";
 
@@ -155,6 +155,9 @@ const Welcome: React.FC<Props> = ({ navigation }) => {
     // Çift tıklama koruması — misafir akışı sürerken yeniden tetiklenmesin.
     if (demoLoading) return;
     setDemoLoading(true);
+    // Global bigpara overlay'i tap anında göster — buton üstü gösterimi
+    // yerine kullanıcı doğrudan logo+3 nokta loader'ı görür.
+    transitionOverlayRef.current?.show();
     try {
       const net = await Network.getNetworkStateAsync();
       if (!net.isConnected) {
@@ -163,6 +166,7 @@ const Welcome: React.FC<Props> = ({ navigation }) => {
           message: "Lütfen ağ bağlantınızı kontrol ediniz!",
         });
         setDemoLoading(false);
+        transitionOverlayRef.current?.hide();
         return;
       }
 
@@ -178,8 +182,10 @@ const Welcome: React.FC<Props> = ({ navigation }) => {
       IdealClientLogin(userId, "ColendiMenkul1", true, "0", "0");
       store.dispatch(initiateLogin(true, true));
       // Not: Başarılı akışta WebSocket login success → isAuthenticated=true →
-      // Stack switch → Welcome unmount olur. Bu yüzden loading state'i
-      // sıfırlamaya gerek yok. Hata durumunda catch bloğu sıfırlıyor.
+      // Stack switch → Welcome unmount olur. Stack geçişi onStateChange'i
+      // tetikleyip mevcut transition overlay fade-out logic'ine bağlanır,
+      // dolayısıyla burada hide() çağırmaya gerek yok. Hata durumunda catch
+      // bloğu hem state hem overlay'i sıfırlıyor.
     } catch (e: any) {
       console.error("loginToDemo failed:", e?.toString?.() ?? e);
       flashMessage({
@@ -187,6 +193,7 @@ const Welcome: React.FC<Props> = ({ navigation }) => {
         message: "Bağlantı sırasında bir hata oluştu. Lütfen tekrar deneyin.",
       });
       setDemoLoading(false);
+      transitionOverlayRef.current?.hide();
     }
   }, [demoLoading]);
 
@@ -331,43 +338,22 @@ const Welcome: React.FC<Props> = ({ navigation }) => {
                   ? "rgba(255,255,255,0.08)"
                   : "rgba(0,0,0,0.08)",
               },
-              demoLoading && s.disabledOpacity,
             ]}
           >
-            {demoLoading ? (
-              <>
-                <ActivityIndicator
-                  size="small"
-                  color={subtle}
-                  style={s.iconRight7}
-                />
-                <Text
-                  style={[
-                    s.ghostText,
-                    { color: subtle, fontFamily: theme.boldFont },
-                  ]}
-                >
-                  Bağlanılıyor…
-                </Text>
-              </>
-            ) : (
-              <>
-                <Ionicons
-                  name="time-outline"
-                  size={16}
-                  color={subtle}
-                  style={s.iconRight7}
-                />
-                <Text
-                  style={[
-                    s.ghostText,
-                    { color: subtle, fontFamily: theme.boldFont },
-                  ]}
-                >
-                  Şimdilik Misafir Olarak Devam Et
-                </Text>
-              </>
-            )}
+            <Ionicons
+              name="time-outline"
+              size={16}
+              color={subtle}
+              style={s.iconRight7}
+            />
+            <Text
+              style={[
+                s.ghostText,
+                { color: subtle, fontFamily: theme.boldFont },
+              ]}
+            >
+              Şimdilik Misafir Olarak Devam Et
+            </Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
