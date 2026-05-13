@@ -36,6 +36,8 @@ import { logout as logoutAuth } from "../screens/Auth/modules/auth";
 import BottomSheetProvider from "../containers/BottomSheet/BottomSheetProvider";
 import { persistToken } from "../modules/pushNotifications";
 import SMSGGO from "../screens/Auth/Login/SMSGGO";
+import CalendarContainer from "../screens/Calendar/containers/CalendarContainer";
+import DividendCalendar from "../screens/DividendCalendar";
 
 const AuthHeaderLogo = () => (
   <Image
@@ -348,6 +350,16 @@ export default function RootNavigation({ onNavigationStateChange }) {
                   name="ThemeChange"
                   component={ThemeChange}
                   options={{ headerShown: true }}
+                />
+                <Stack.Screen
+                  name="Calendar"
+                  component={CalendarContainer}
+                  options={{ headerShown: true, headerTitle: "Ekonomik Takvim", headerTitleAlign: "center" }}
+                />
+                <Stack.Screen
+                  name="DividendCalendar"
+                  component={DividendCalendar}
+                  options={{ headerShown: true, headerTitle: "Temettü Takvimi", headerTitleAlign: "center" }}
                 />
                 {/* <Stack.Screen
                   name="DetailTradingView"
