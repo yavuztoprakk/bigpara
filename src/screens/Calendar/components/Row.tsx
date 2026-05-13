@@ -9,11 +9,30 @@ import { Ionicons } from "@expo/vector-icons";
 import flashMessage from "../../../modules/flashMessage";
 import { useTheme } from "../../../theme/ThemeContext";
 
+const MONTH_NAMES_TR = [
+	"Oca", "Şub", "Mar", "Nis", "May", "Haz",
+	"Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara",
+] as const;
+
+// "2026-05-13" + "2026-05-13T02:00:00.000Z" → "13 May 2026 · 05:00"
+function formatEventDateTime(day: string, time: string): string {
+	const iso = time && time.includes("T") ? time : `${day || ""}T00:00:00.000Z`;
+	const d = new Date(iso);
+	if (isNaN(d.getTime())) return `${day || ""} ${time || ""}`.trim();
+	const dd = d.getDate().toString().padStart(2, "0");
+	const mon = MONTH_NAMES_TR[d.getMonth()];
+	const yy = d.getFullYear();
+	const hh = d.getHours().toString().padStart(2, "0");
+	const mi = d.getMinutes().toString().padStart(2, "0");
+	return `${dd} ${mon} ${yy} · ${hh}:${mi}`;
+}
+
 const Row: React.FC<
 	CalendarEvent & { save: (values: any) => void; hasImkbh: boolean }
 > = ({ save, hasImkbh, ...event }) => {
 	const { theme } = useTheme();
 	const styles = createStyles(theme);
+	const formattedDateTime = formatEventDateTime(event.day, event.time);
 	return (
 		<View style={styles.container}>
 			<View style={styles.flag}>
@@ -34,7 +53,7 @@ const Row: React.FC<
 					{event.provider_event_title}
 				</BoldText>
 				<Text style={styles.subtitle}>
-					{event.day} {event.time} | {event.country}
+					{formattedDateTime} · {event.country}
 				</Text>
 			</View>
 			<TouchableOpacity

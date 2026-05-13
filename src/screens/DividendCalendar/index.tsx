@@ -32,22 +32,9 @@ const DividendCalendar = ({ navigation }: { navigation: any }) => {
     const lastRequestAtRef = useRef<number>(0);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    React.useLayoutEffect(() => {
-        navigation.setOptions({
-            headerTitleAlign: 'center',
-            headerTitle: () => (
-                <Image
-                    source={logoThemeChange(theme)}
-                    style={{
-                        width: 110,
-                        height: 110,
-                        resizeMode: 'contain',
-                    }}
-                />
-            ),
-            headerTintColor: theme.onBlue,
-        });
-    }, [navigation, theme]);
+    // Header AppNavigator'da AuthHeaderLogo ile set ediliyor; burada
+    // setOptions ile override edilmiyor (eski iDeal Pro logosu yerine
+    // bigpara logosu kullanılıyor).
 
     // Redux store'dan dividend verilerini al
     const dividendResponse = useSelector((state: any) => state.dividendCalendar);

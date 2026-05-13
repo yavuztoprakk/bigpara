@@ -354,12 +354,22 @@ export default function RootNavigation({ onNavigationStateChange }) {
                 <Stack.Screen
                   name="Calendar"
                   component={CalendarContainer}
-                  options={{ headerShown: true, headerTitle: "Ekonomik Takvim", headerTitleAlign: "center" }}
+                  options={{
+                    headerShown: true,
+                    headerTitle: () => <AuthHeaderLogo />,
+                    headerTitleAlign: "center",
+                    headerBackTitle: "",
+                  }}
                 />
                 <Stack.Screen
                   name="DividendCalendar"
                   component={DividendCalendar}
-                  options={{ headerShown: true, headerTitle: "Temettü Takvimi", headerTitleAlign: "center" }}
+                  options={{
+                    headerShown: true,
+                    headerTitle: () => <AuthHeaderLogo />,
+                    headerTitleAlign: "center",
+                    headerBackTitle: "",
+                  }}
                 />
                 {/* <Stack.Screen
                   name="DetailTradingView"
