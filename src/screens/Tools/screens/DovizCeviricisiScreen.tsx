@@ -12,6 +12,8 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+// @ts-ignore - react-native-flags has no types
+import Flag from "react-native-flags";
 import { useTheme } from "../../../theme/ThemeContext";
 import { request } from "../../../modules/IdealClient";
 import symbolSend from "../../../modules/IdealClient/request/symbolSend";
@@ -241,6 +243,9 @@ const DovizCeviricisiScreen = () => {
                     sel && { backgroundColor: accentSoft },
                   ]}
                 >
+                  <View style={s.flagWrap}>
+                    <Flag code={item.countryCode} type="flat" size={24} />
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Text
                       style={[
@@ -307,6 +312,9 @@ const DovizCeviricisiScreen = () => {
             onPress={() => setFromModalVisible(true)}
             style={[s.chip, { backgroundColor: chipBg }]}
           >
+            <View style={s.chipFlag}>
+              <Flag code={fromCurrency.countryCode} type="flat" size={24} />
+            </View>
             <Text
               style={[
                 s.chipText,
@@ -368,6 +376,9 @@ const DovizCeviricisiScreen = () => {
             onPress={() => setToModalVisible(true)}
             style={[s.chip, { backgroundColor: chipBg }]}
           >
+            <View style={s.chipFlag}>
+              <Flag code={toCurrency.countryCode} type="flat" size={24} />
+            </View>
             <Text
               style={[
                 s.chipText,
@@ -533,6 +544,22 @@ const s = StyleSheet.create({
   },
   modalRowLabel: { fontSize: 14.5, letterSpacing: 0.2 },
   modalRowCode: { fontSize: 11, marginTop: 2, letterSpacing: 0.3 },
+  flagWrap: {
+    width: 28,
+    height: 28,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  chipFlag: {
+    width: 24,
+    height: 24,
+    overflow: "hidden",
+    marginRight: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
 
 export default DovizCeviricisiScreen;
