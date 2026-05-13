@@ -88,3 +88,76 @@ export const CURRENCY_PAIR_TITLE_BY_CODE: Readonly<Record<string, string>> =
 export function getCurrencyPairTitle(code: string): string | undefined {
 	return CURRENCY_PAIR_TITLE_BY_CODE[code];
 }
+
+// =====================================================================
+// Bireysel para birimleri (Döviz Çeviricisi dropdown'ları için)
+// =====================================================================
+export interface Currency {
+	code: string;  // 3 harfli ISO/IDealdata kodu
+	label: string; // Uzun, kullanıcıya gösterilen isim
+}
+
+export const INDIVIDUAL_CURRENCIES: readonly Currency[] = [
+	{ code: "TRY", label: "Türk Lirası" },
+	{ code: "USD", label: "Amerikan Doları" },
+	{ code: "EUR", label: "Euro" },
+	{ code: "GBP", label: "İngiliz Sterlini" },
+	{ code: "CHF", label: "İsviçre Frangı" },
+	{ code: "JPY", label: "Japon Yeni" },
+	{ code: "CAD", label: "Kanada Doları" },
+	{ code: "AUD", label: "Avustralya Doları" },
+	{ code: "AED", label: "BAE Dirhemi" },
+	{ code: "ARS", label: "Arjantin Pesosu" },
+	{ code: "BRL", label: "Brezilya Reali" },
+	{ code: "CNH", label: "Çin Yuanı (Offshore)" },
+	{ code: "CNY", label: "Çin Yuanı" },
+	{ code: "CZK", label: "Çek Korunası" },
+	{ code: "DKK", label: "Danimarka Kronu" },
+	{ code: "HKD", label: "Hong Kong Doları" },
+	{ code: "HUF", label: "Macar Forinti" },
+	{ code: "IDR", label: "Endonezya Rupisi" },
+	{ code: "ILS", label: "İsrail Şekeli" },
+	{ code: "INR", label: "Hindistan Rupisi" },
+	{ code: "KRW", label: "Güney Kore Wonu" },
+	{ code: "MXN", label: "Meksika Pesosu" },
+	{ code: "NOK", label: "Norveç Kronu" },
+	{ code: "NZD", label: "Yeni Zelanda Doları" },
+	{ code: "PLN", label: "Polonya Zlotisi" },
+	{ code: "RON", label: "Romanya Leyi" },
+	{ code: "RUB", label: "Rus Rublesi" },
+	{ code: "SAR", label: "Suudi Arabistan Riyali" },
+	{ code: "SEK", label: "İsveç Kronu" },
+	{ code: "SGD", label: "Singapur Doları" },
+	{ code: "THB", label: "Tayland Bahtı" },
+	{ code: "TWD", label: "Tayvan Doları" },
+	{ code: "ZAR", label: "Güney Afrika Randı" },
+] as const;
+
+const PAIR_CODES_SET: ReadonlySet<string> = new Set(
+	CURRENCY_PAIRS.map((p) => p.code)
+);
+
+// İki bireysel kod arasındaki pariteyi bulur:
+//   - Direkt eşleşme varsa (örn. USDTRY) inverted=false
+//   - Ters yön varsa (örn. EURUSD için from=USD, to=EUR) inverted=true
+//   - Hiçbiri yoksa null
+export interface PairLookupResult {
+	code: string;       // Sembol kodu (örn. "USDTRY")
+	inverted: boolean;  // true ise lastPrice'in 1/rate'i alınır
+}
+
+export function findPairCode(
+	from: string,
+	to: string
+): PairLookupResult | null {
+	if (!from || !to || from === to) return null;
+	const direct = `${from}${to}`;
+	if (PAIR_CODES_SET.has(direct)) {
+		return { code: direct, inverted: false };
+	}
+	const reverse = `${to}${from}`;
+	if (PAIR_CODES_SET.has(reverse)) {
+		return { code: reverse, inverted: true };
+	}
+	return null;
+}
