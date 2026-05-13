@@ -219,6 +219,13 @@ const DovizCeviricisiScreen = () => {
             data={currencies}
             keyExtractor={(i) => i.code}
             showsVerticalScrollIndicator={false}
+            // 33 öğenin hepsi ilk açılışta hazır olsun ki kullanıcı scroll'da
+            // gecikme görmesin (FlatList default 10 ile başlıyordu).
+            initialNumToRender={50}
+            maxToRenderPerBatch={50}
+            windowSize={21}
+            style={s.modalList}
+            contentContainerStyle={s.modalListContent}
             renderItem={({ item }) => {
               const sel = item.code === selectedCode;
               return (
@@ -493,11 +500,13 @@ const s = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalSheet: {
-    maxHeight: "75%",
+    height: "75%",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 34,
   },
+  modalList: { flex: 1 },
+  modalListContent: { paddingBottom: 16 },
   modalHandle: {
     width: 36,
     height: 4,
