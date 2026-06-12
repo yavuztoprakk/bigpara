@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "798675281903",
+    "project_id": "colendi-trader",
+    "storage_bucket": "colendi-trader.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798675281903:android:e95f3ee81aec8c1f00f81a",
+        "android_client_info": {
+          "package_name": "com.colendimenkul.trader"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi1MDzqg9I-yfL1mh1XFteHtO82kg-MyM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

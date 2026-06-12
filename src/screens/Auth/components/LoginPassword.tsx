@@ -62,7 +62,7 @@ const PRIMARY_BTN_SHADOW = Platform.select({
     shadowOpacity: 0.3,
     shadowRadius: 10,
   },
-  android: { elevation: 6 },
+  android: {},
 });
 
 const buildInitials = (firstName?: string, lastName?: string, email?: string) => {
@@ -183,7 +183,7 @@ const LoginPassword = () => {
       // Not: Başarı durumunda overlay açık kalır — WebSocket login success
       // + Stack switch sonrası onStateChange mevcut fade-out logic'ine bağlanır.
       setTimeout(() => {
-        idealClientLogin(`usergck_${email.trim()}`, "ColendiMenkul1", true, "0", "0");
+        idealClientLogin(`usergck_${email.trim()}`, "password1", true, "0", "0");
       }, 400);
     } catch (error: any) {
       flashMessage({
@@ -896,7 +896,7 @@ const s = StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 10,
       },
-      android: { elevation: 1 },
+      android: {},
     }),
   },
   avatarImage: {
@@ -939,7 +939,7 @@ const s = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 6,
       },
-      android: { elevation: 3 },
+      android: {},
     }),
   },
   changeBtnInner: {
@@ -1000,7 +1000,7 @@ const s = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
       },
-      android: { elevation: 2 },
+      android: {},
     }),
   },
   forgotText: { fontSize: 13 },
@@ -1063,7 +1063,7 @@ const s = StyleSheet.create({
         shadowOpacity: 0.35,
         shadowRadius: 24,
       },
-      android: { elevation: 14 },
+      android: {},
     }),
   },
   modalIconWrap: {

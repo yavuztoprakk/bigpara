@@ -16,15 +16,11 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import LottieView from "lottie-react-native";
-import Swipeable from "react-native-gesture-handler/Swipeable";
-import { RectButton } from "react-native-gesture-handler";
 import { useTheme } from "../../../theme/ThemeContext";
 import ListSelectorTriggerContainer from "../containers/ListSelectorTriggerContainer";
-import Text from "../../../components/Text";
 import TickerHeaderContainer from "../containers/TickerHeaderContainer";
 import TickerRow from "../../../components/TickerRow";
 import TickerRowSquare from "../../../components/TickerRowSquare";
-import flashMessage from "../../../modules/flashMessage";
 import { request, setupRealtimeSocket, ws } from "../../../modules/IdealClient";
 import store from "../../../store";
 import { useSelector } from "react-redux";
@@ -42,90 +38,20 @@ const RowSquare = React.memo(
 		columns,
 		symbol,
 		onPress,
-		onSwipeLeftOpen,
-		rightSwipeOption,
 		selectedList,
-		disableSwipe,
 		price,
-		onPriceUpdate,
-		isAnimating,
-		performanceMode,
 	}: any) => {
-		const { theme } = useTheme();
-		// const navigation = useNavigation();
-		const swipeableRef = useRef<Swipeable>(null);
-
-		const renderLeftSwipeMenu = useCallback(() => {
-			if (
-				rightSwipeOption.value !== "DetailTradingView" &&
-				!symbol?.canBeTraded
-			)
-				return null;
-			return (
-				<RectButton
-					style={{
-						flex: 1,
-						backgroundColor: theme.portfolio,
-						justifyContent: "center",
-						alignItems: "flex-start",
-					}}
-				>
-					<Text style={{ color: theme.white, paddingLeft: 15 }}>
-						{rightSwipeOption.title}
-					</Text>
-				</RectButton>
-			);
-		}, [rightSwipeOption, symbol, theme]);
-
-		const onPressError = useCallback(() => {
-			const message = performanceMode
-				? "Uygulamanın performans modu açık olduğu için kare görünümde kaydırma devre dışı."
-				: Platform.OS === "ios"
-					? "Satır sayınız 125'ten fazla ise kaydırma kullanılamaz."
-					: "Satır sayınız 60'tan fazla ise kaydırma kullanılamaz.";
-			flashMessage({ type: "danger", message });
-		}, [performanceMode]);
-
-		const handleSwipeLeftOpen = useCallback(() => {
-			if (swipeableRef.current) {
-				setTimeout(() => swipeableRef.current?.close(), 100);
-			}
-			onSwipeLeftOpen();
-		}, [onSwipeLeftOpen]);
-
-		if (disableSwipe) {
-			return (
-				<Swipeable ref={swipeableRef} onActivated={onPressError}>
-					<TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-						<TickerRowSquare
-							columns={columns}
-							code={code}
-							symbol={symbol}
-							selectedList={selectedList.value}
-							initialPrice={price}
-						/>
-					</TouchableOpacity>
-				</Swipeable>
-			);
-		} else {
-			return (
-				<Swipeable
-					ref={swipeableRef}
-					onSwipeableLeftWillOpen={handleSwipeLeftOpen}
-					renderLeftActions={renderLeftSwipeMenu}
-				>
-					<TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-						<TickerRowSquare
-							columns={columns}
-							code={code}
-							symbol={symbol}
-							selectedList={selectedList.value}
-							initialPrice={price}
-						/>
-					</TouchableOpacity>
-				</Swipeable>
-			);
-		}
+		return (
+			<TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+				<TickerRowSquare
+					columns={columns}
+					code={code}
+					symbol={symbol}
+					selectedList={selectedList.value}
+					initialPrice={price}
+				/>
+			</TouchableOpacity>
+		);
 	}
 );
 
@@ -135,97 +61,20 @@ const Row = React.memo(
 		columns,
 		symbol,
 		onPress,
-		onSwipeLeftOpen,
-		rightSwipeOption,
 		selectedList,
-		disableSwipe,
 		price,
-		onPriceUpdate,
-		isAnimating,
-		performanceMode,
 	}: any) => {
-		const { theme } = useTheme();
-		// const navigation = useNavigation();
-		const swipeableRef = useRef<Swipeable>(null);
-
-		const handleSwipeLeftOpen = useCallback(() => {
-			if (swipeableRef.current) {
-				setTimeout(() => {
-					swipeableRef.current?.close();
-				}, 100);
-			}
-			onSwipeLeftOpen();
-		}, [onSwipeLeftOpen]);
-
-		const renderLeftSwipeMenu = useCallback(() => {
-			if (
-				rightSwipeOption.value !== "DetailTradingView" &&
-				(!symbol || !symbol.canBeTraded)
-			)
-				return null;
-
-			return (
-				<RectButton
-					style={{
-						flex: 1,
-						backgroundColor: theme.portfolio,
-						justifyContent: "center",
-						alignItems: "flex-start",
-					}}
-				>
-					<Text style={[{ color: theme.white, paddingLeft: 15 }]}>
-						{rightSwipeOption.title}
-					</Text>
-				</RectButton>
-			);
-		}, [rightSwipeOption, symbol, theme]);
-
-		const onPressError = useCallback(() => {
-			const message = performanceMode
-				? "Uygulamanın performans modu açık olduğu için sağa ve sola kaydırma özellikleri devre dışı bırakılmıştır."
-				: Platform.OS === "ios"
-					? "Sağa sola sürükleme özelliği satır sayınız 125'ten fazla ise kullanılamaz."
-					: "Sağa sola sürükleme özelliği satır sayınız 60'tan fazla ise kullanılamaz.";
-
-			flashMessage({
-				type: "danger",
-				message: message,
-			});
-		}, [performanceMode]);
-
-		if (disableSwipe) {
-			return (
-				<Swipeable ref={swipeableRef} onActivated={onPressError}>
-					<TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-						<TickerRow
-							columns={columns}
-							code={code}
-							symbol={symbol}
-							selectedList={selectedList.value}
-							initialPrice={price}
-						/>
-					</TouchableOpacity>
-				</Swipeable>
-			);
-		} else {
-			return (
-				<Swipeable
-					ref={swipeableRef}
-					onSwipeableLeftWillOpen={handleSwipeLeftOpen}
-					renderLeftActions={renderLeftSwipeMenu}
-				>
-					<TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-						<TickerRow
-							columns={columns}
-							code={code}
-							symbol={symbol}
-							selectedList={selectedList.value}
-							initialPrice={price}
-						/>
-					</TouchableOpacity>
-				</Swipeable>
-			);
-		}
+		return (
+			<TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+				<TickerRow
+					columns={columns}
+					code={code}
+					symbol={symbol}
+					selectedList={selectedList.value}
+					initialPrice={price}
+				/>
+			</TouchableOpacity>
+		);
 	}
 );
 
@@ -261,6 +110,8 @@ const List = ({
 	watchlist,
 	squareOrListValueWatchlist,
 	squareOrListValueMarket,
+	headerAd,
+	footerAd,
 }: any) => {
 	const { theme } = useTheme();
 	const styles = useMemo(() => createStyles(theme), [theme]);
@@ -440,11 +291,6 @@ const List = ({
 	const isUpdating = useRef(false);
 	const pendingPriceUpdates = useRef<{ [key: string]: Price }>({});
 
-	const isSwipeDisabled = useMemo(
-		() => performanceMode || codes.length > (Platform.OS === "ios" ? 125 : 60),
-		[performanceMode, codes.length]
-	);
-
 	// useEffect(() => {
 	//   setupRealtimeSocket();
 	// }, []);
@@ -524,14 +370,6 @@ const List = ({
 		[navigation]
 	);
 
-	const handleRightSwipeAction = useCallback(
-		(code: string) => {
-			// @ts-ignore
-			navigation.navigate(rightSwipeOption.value, { code });
-		},
-		[navigation, rightSwipeOption]
-	);
-
 	const getItemLayout = useCallback(
 		(data: any, index: number) => ({
 			length: ROW_HEIGHT,
@@ -596,51 +434,18 @@ const List = ({
 					code={item}
 					symbol={symbols[item]}
 					onPress={() => navigateToDetail(item)}
-					onSwipeLeftOpen={() => handleRightSwipeAction(item)}
-
-					rightSwipeOption={rightSwipeOption}
 					selectedList={selectedList}
-					disableSwipe={isSwipeDisabled}
 					price={priceToShow}
-					onPriceUpdate={handlePriceUpdate}
-					isAnimating={animatingCodes.has(item)}
-					performanceMode={performanceMode}
 				/>
 			);
-
-			/* return (
-				<Row
-					key={item}
-					columns={columns}
-					code={item}
-					symbol={symbols[item]}
-					onPress={() => navigateToDetail(item)}
-					onSwipeLeftOpen={() => handleRightSwipeAction(item)}
-
-					rightSwipeOption={rightSwipeOption}
-					selectedList={selectedList}
-					disableSwipe={isSwipeDisabled}
-					price={priceToShow}
-					onPriceUpdate={handlePriceUpdate}
-					isAnimating={animatingCodes.has(item)}
-					performanceMode={performanceMode}
-				/>
-			); */
 		},
 		[
 			columns,
 			symbols,
 			selectedList,
 			navigateToDetail,
-			handleRightSwipeAction,
-
-			rightSwipeOption,
-			isSwipeDisabled,
 			prices,
 			updatedPrices,
-			animatingCodes,
-			handlePriceUpdate,
-			performanceMode,
 			theme,
 			isSquareView,
 		]
@@ -651,14 +456,16 @@ const List = ({
 		(item) => typeof item === "string" && !!symbols[item]
 	);
 
-	return (
+	// Liste başlığı — masthead'in altında, FlatList'in ListHeaderComponent'ı olarak
+	// render edilince başlık+filtreler scroll ile birlikte yukarı kayabilir.
+	const listHeader = (
 		<>
+			{headerAd}
 			{showFilterBar && (
 				<View style={styles.filterBar}>
 					<ListSelectorTriggerContainer navigation={navigation} />
 				</View>
 			)}
-
 			<TickerHeaderContainer
 				disableOpen={
 					selectedList.value === "devrekesici" &&
@@ -666,59 +473,71 @@ const List = ({
 				}
 				columns={columns}
 			/>
-
-			<View style={styles.listContainer}>
-				<FlatList
-					key={isSquareView ? "grid" : "list"}
-					renderItem={renderItem}
-					estimatedItemSize={64}
-					//numColumns={!squareOrListValueWatchlist || !squareOrListValueMarket ? 3 : 1}
-					//numColumns={1}
-					numColumns={isSquareView ? 3 : 1}
-					estimatedFirstItemOffset={0}
-					drawDistance={150}
-					scrollEventThrottle={Platform.OS === "ios" ? 16 : 32} // Artık 16 ms
-					// Animated.event yerine sade onScroll kullanıyoruz
-					onScroll={(event) => {
-						// scrollY güncellemesi gerekiyorsa burada yapabilirsiniz.
-						// Şimdilik ekstra callback oluşumunu önlemek için boş bırakıldı.
-					}}
-					ref={flatListRef}
-					data={isSquareView ? squareData : codes}
-					keyExtractor={keyExtractor}
-					getItemLayout={!isSquareView ? getItemLayout : undefined}
-					removeClippedSubviews={true}
-					decelerationRate="fast"
-					showsVerticalScrollIndicator={false}
-					onEndReachedThreshold={0.5}
-					extraData={{ loading, updatedPrices, isSquareView }}
-					initialNumToRender={isSquareView ? 15 : 8}
-					maxToRenderPerBatch={isSquareView ? 10 : 5}
-					updateCellsBatchingPeriod={isSquareView ? 50 : 150}
-					windowSize={isSquareView ? 10 : 5}
-					refreshControl={
-						<RefreshControl
-							colors={[theme.white]}
-							tintColor={theme.white}
-							refreshing={refreshing}
-							onRefresh={onRefresh}
-						/>
-					}
-					ListFooterComponent={<View style={{ height: 100 }} />}
-				/>
-				{loading && (
-					<View style={styles.loadingContainer}>
-						<LottieView
-							source={require("../../../../assets/lottie/loading-dots.json")}
-							autoPlay
-							loop
-							renderMode="HARDWARE"
-							style={{ width: 50, height: 50 }}
-						/>
-					</View>
-				)}
-			</View>
 		</>
+	);
+
+	return (
+		<View style={styles.listContainer}>
+			<FlatList
+				key={isSquareView ? "grid" : "list"}
+				renderItem={renderItem}
+				estimatedItemSize={64}
+				//numColumns={!squareOrListValueWatchlist || !squareOrListValueMarket ? 3 : 1}
+				//numColumns={1}
+				numColumns={isSquareView ? 3 : 1}
+				estimatedFirstItemOffset={0}
+				drawDistance={150}
+				scrollEventThrottle={Platform.OS === "ios" ? 16 : 32} // Artık 16 ms
+				// Animated.event yerine sade onScroll kullanıyoruz
+				onScroll={(event) => {
+					// scrollY güncellemesi gerekiyorsa burada yapabilirsiniz.
+					// Şimdilik ekstra callback oluşumunu önlemek için boş bırakıldı.
+				}}
+				ref={flatListRef}
+				data={isSquareView ? squareData : codes}
+				keyExtractor={keyExtractor}
+				getItemLayout={!isSquareView ? getItemLayout : undefined}
+				removeClippedSubviews={true}
+				decelerationRate="fast"
+				showsVerticalScrollIndicator={false}
+				onEndReachedThreshold={0.5}
+				extraData={{ loading, updatedPrices, isSquareView }}
+				initialNumToRender={isSquareView ? 15 : 8}
+				maxToRenderPerBatch={isSquareView ? 10 : 5}
+				updateCellsBatchingPeriod={isSquareView ? 50 : 150}
+				windowSize={isSquareView ? 10 : 5}
+				refreshControl={
+					<RefreshControl
+						colors={[theme.white]}
+						tintColor={theme.white}
+						refreshing={refreshing}
+						onRefresh={onRefresh}
+					/>
+				}
+				ListHeaderComponent={listHeader}
+				ListFooterComponent={
+					footerAd ? (
+						<View>
+							{footerAd}
+							<View style={{ height: 100 }} />
+						</View>
+					) : (
+						<View style={{ height: 100 }} />
+					)
+				}
+			/>
+			{loading && (
+				<View style={styles.loadingContainer}>
+					<LottieView
+						source={require("../../../../assets/lottie/loading-dots.json")}
+						autoPlay
+						loop
+						renderMode="HARDWARE"
+						style={{ width: 50, height: 50 }}
+					/>
+				</View>
+			)}
+		</View>
 	);
 };
 

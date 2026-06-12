@@ -2,12 +2,15 @@ import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, Image, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../../theme/ThemeContext';
+import ToolFooterAd from '../../../modules/ads/ToolFooterAd';
+import ToolMastheadAd from '../../../modules/ads/ToolMastheadAd';
 
 interface DividendTableProps {
     filteredData: any[];
     sortField: string | null;
     sortDirection: 'asc' | 'desc';
     handleSort: (field: string) => void;
+    extraHeader?: React.ReactNode;
 }
 
 const statusOptions = [
@@ -21,6 +24,7 @@ const DividendTable: React.FC<DividendTableProps> = ({
     sortField,
     sortDirection,
     handleSort,
+    extraHeader,
 }) => {
     const navigation = useNavigation();
     const { theme } = useTheme();
@@ -175,16 +179,21 @@ const DividendTable: React.FC<DividendTableProps> = ({
     };
 
     return (
-        <>
-            {renderTableHeader()}
-            <FlatList
-                data={filteredData}
-                renderItem={renderTableRow}
-                keyExtractor={(item, index) => `dividend-${index}`}
-                showsVerticalScrollIndicator={false}
-                style={styles.tableBody}
-            />
-        </>
+        <FlatList
+            data={filteredData}
+            renderItem={renderTableRow}
+            keyExtractor={(item, index) => `dividend-${index}`}
+            ListHeaderComponent={
+                <>
+                    <ToolMastheadAd />
+                    {extraHeader}
+                    {renderTableHeader()}
+                </>
+            }
+            ListFooterComponent={ToolFooterAd}
+            showsVerticalScrollIndicator={false}
+            style={styles.tableBody}
+        />
     );
 };
 

@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Alert, StyleSheet, Image } from 'react-native';
+import { withToolAds } from "../../modules/ads/withToolAds";
+import ToolMastheadAd from "../../modules/ads/ToolMastheadAd";
+import ToolFooterAd from "../../modules/ads/ToolFooterAd";
+import { View, ScrollView, Alert, StyleSheet, Image } from 'react-native';
 import { useSelector } from 'react-redux';
 import FilterSection from './components/FilterSection';
 import DividendTable from './components/DividendTable';
@@ -304,45 +307,57 @@ const DividendCalendar = ({ navigation }: { navigation: any }) => {
     // Eğer loading gösteriyorsak, hasData false olmalı ki "veri bulunamadı" mesajı görünmesin
     const actualHasData = hasData && !shouldShowLoading;
 
+    // Filtre alanı — masthead'in altında her state'te ortak göstermek için.
+    const filterSection = (
+        <FilterSection
+            symbolSearch={symbolSearch}
+            setSymbolSearch={setSymbolSearch}
+            selectedStatus={selectedStatus}
+            setSelectedStatus={setSelectedStatus}
+            showStatusDropdown={showStatusDropdown}
+            setShowStatusDropdown={setShowStatusDropdown}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            showDateFilter={showDateFilter}
+            setShowDateFilter={setShowDateFilter}
+            showStartDatePicker={showStartDatePicker}
+            setShowStartDatePicker={setShowStartDatePicker}
+            showEndDatePicker={showEndDatePicker}
+            setShowEndDatePicker={setShowEndDatePicker}
+        />
+    );
+
     return (
         <View style={[styles.container, { backgroundColor: theme.darkBrand }]}>
-            <FilterSection
-                symbolSearch={symbolSearch}
-                setSymbolSearch={setSymbolSearch}
-                selectedStatus={selectedStatus}
-                setSelectedStatus={setSelectedStatus}
-                showStatusDropdown={showStatusDropdown}
-                setShowStatusDropdown={setShowStatusDropdown}
-                startDate={startDate}
-                setStartDate={setStartDate}
-                endDate={endDate}
-                setEndDate={setEndDate}
-                showDateFilter={showDateFilter}
-                setShowDateFilter={setShowDateFilter}
-                showStartDatePicker={showStartDatePicker}
-                setShowStartDatePicker={setShowStartDatePicker}
-                showEndDatePicker={showEndDatePicker}
-                setShowEndDatePicker={setShowEndDatePicker}
-            />
-
-            <LoadingStates
-                loading={shouldShowLoading}
-                error={error}
-                hasData={actualHasData}
-                symbolSearch={symbolSearch}
-                selectedStatus={selectedStatus}
-                startDate={startDate}
-                endDate={endDate}
-                dataFetched={dataFetched}
-            />
-
-            {!shouldShowLoading && !error && actualHasData && (
+            {!shouldShowLoading && !error && actualHasData ? (
                 <DividendTable
                     filteredData={filteredData}
                     sortField={sortField}
                     sortDirection={sortDirection}
                     handleSort={handleSort}
+                    extraHeader={filterSection}
                 />
+            ) : (
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1 }}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <ToolMastheadAd />
+                    {filterSection}
+                    <LoadingStates
+                        loading={shouldShowLoading}
+                        error={error}
+                        hasData={actualHasData}
+                        symbolSearch={symbolSearch}
+                        selectedStatus={selectedStatus}
+                        startDate={startDate}
+                        endDate={endDate}
+                        dataFetched={dataFetched}
+                    />
+                    <ToolFooterAd />
+                </ScrollView>
             )}
         </View>
     );
@@ -356,4 +371,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default DividendCalendar;
+export default withToolAds(DividendCalendar, "temettu-takvimi");

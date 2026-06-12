@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -66,12 +67,11 @@ const OtpVerify = () => {
   const [otpFocused, setOtpFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   const accent = ACCENT;
   const inputBg = isDark ? "rgba(255,255,255,0.045)" : "rgba(0,0,0,0.025)";
   const inputBorder = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
-  const placeholder = isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)";
-  const subtle = isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.38)";
   const readable = isDark ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.68)";
   const text = theme.white;
 
@@ -202,34 +202,41 @@ const OtpVerify = () => {
         </Text>
 
         <View style={s.fieldGroup}>
-          <View
+          <Pressable
+            onPress={() => inputRef.current?.focus()}
             style={[
-              s.inputRow,
+              s.dotsRow,
               {
                 backgroundColor: inputBg,
                 borderColor: otpFocused ? accent : inputBorder,
               },
             ]}
           >
-            <Ionicons
-              name="keypad-outline"
-              size={16}
-              color={otpFocused ? accent : subtle}
-              style={s.inputIcon}
-            />
+            {Array.from({ length: OTP_LENGTH }).map((_, i) => {
+              const filled = i < otpCode.length;
+              const isCurrent = otpFocused && i === otpCode.length;
+              return (
+                <View
+                  key={i}
+                  style={[
+                    s.dot,
+                    {
+                      borderColor: filled
+                        ? accent
+                        : isCurrent
+                        ? accent
+                        : inputBorder,
+                      backgroundColor: filled ? accent : "transparent",
+                      borderWidth: isCurrent && !filled ? 2 : 1.5,
+                    },
+                  ]}
+                />
+              );
+            })}
+            {/* Görünmez TextInput — odak ve klavye için. */}
             <TextInput
-              style={[
-                s.input,
-                {
-                  color: text,
-                  fontFamily: theme.boldFont,
-                  letterSpacing: 8,
-                  textAlign: "center",
-                  fontSize: 18,
-                },
-              ]}
-              placeholder={"•".repeat(OTP_LENGTH)}
-              placeholderTextColor={placeholder}
+              ref={inputRef}
+              style={s.hiddenInput}
               value={otpCode}
               onChangeText={handleOtpChange}
               onFocus={() => setOtpFocused(true)}
@@ -237,8 +244,9 @@ const OtpVerify = () => {
               keyboardType="number-pad"
               maxLength={OTP_LENGTH}
               autoFocus
+              caretHidden
             />
-          </View>
+          </Pressable>
         </View>
 
         <TouchableOpacity
@@ -349,16 +357,26 @@ const s = StyleSheet.create({
     alignSelf: "stretch",
     marginBottom: 18,
   },
-  inputRow: {
+  dotsRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 52,
+    borderRadius: 14,
+    paddingVertical: 18,
+    gap: 16,
   },
-  inputIcon: { marginRight: 10 },
-  input: { flex: 1, height: "100%" },
+  dot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  hiddenInput: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
 
   // Yardımcı stiller — inline obje üretimini engellemek için.
   iconRight6: { marginRight: 6 },

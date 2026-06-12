@@ -14,6 +14,15 @@ import { listOptions, select } from "../modules/lists";
 import { request } from "../../../modules/IdealClient";
 import symbolSend from "../../../modules/IdealClient/request/symbolSend";
 import { turkishToAsciiUpper } from "./ListSelector";
+import MastheadBanner from "../../../modules/ads/MastheadBanner";
+import MediumBanner from "../../../modules/ads/MediumBanner";
+import LazyAdSlot from "../../../modules/ads/LazyAdSlot";
+import type { AdTargeting } from "../../../modules/ads/config";
+
+const AD_TARGETING: AdTargeting = {
+  bigpara_kategori: "piyasalar",
+  catlist: ["c1_piyasalar"],
+};
 
 interface Props {
   navigation: any;
@@ -105,6 +114,7 @@ const Markets: React.FC<Props> = ({ navigation }) => {
       contentContainerStyle={s.content}
       showsVerticalScrollIndicator={false}
     >
+      <MastheadBanner bucket="diger" targeting={AD_TARGETING} />
       {ITEMS.map((item) => (
         <CategoryCard
           key={item.value}
@@ -115,6 +125,9 @@ const Markets: React.FC<Props> = ({ navigation }) => {
           onSelect={handleSelect}
         />
       ))}
+      <LazyAdSlot reservedHeight={250}>
+        <MediumBanner bucket="diger" targeting={AD_TARGETING} />
+      </LazyAdSlot>
       <View style={s.bottomSpacer} />
     </ScrollView>
   );

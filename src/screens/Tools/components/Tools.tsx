@@ -20,6 +20,16 @@ import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../../theme/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from "react-native-svg";
+import MastheadBanner from "../../../modules/ads/MastheadBanner";
+import MediumBanner from "../../../modules/ads/MediumBanner";
+import LazyAdSlot from "../../../modules/ads/LazyAdSlot";
+import type { AdTargeting } from "../../../modules/ads/config";
+
+// Analiz ana sayfası — diger bucket
+const AD_TARGETING: AdTargeting = {
+  bigpara_kategori: "analiz",
+  catlist: ["c1_analiz"],
+};
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = 16;
@@ -61,6 +71,16 @@ const CALC: Palette = { primary: "#FFB978", soft: "#FFD3A4", glow: "255,185,120"
 
 const SECTIONS: ToolSection[] = [
   {
+    title: "Hesaplayıcılar",
+    icon: "calculator-outline",
+    layout: "duo",
+    palette: CALC,
+    items: [
+      { key: "doviz-ceviricisi", screen: "DovizCeviricisi", title: "Döviz Çeviricisi", icon: "swap-horizontal-outline" },
+      { key: "altin-hesaplayici", screen: "AltinHesaplayici", title: "Altın Hesaplayıcı", icon: "diamond-outline" },
+    ],
+  },
+  {
     title: "Portföy Yönetimi",
     icon: "wallet-outline",
     layout: "hero+2",
@@ -91,16 +111,6 @@ const SECTIONS: ToolSection[] = [
       { key: "temettu-takvimi", screen: "DividendCalendar", title: "Temettü Takvimi", subtitle: "Hisse temettü ödemeleri", icon: "cash-outline" },
       { key: "mali-tablolar", screen: "MaliTablolar", title: "Mali Tablolar", icon: "document-text-outline" },
       { key: "performans-analizi", screen: "PerformansAnalizi", title: "Performans Analizi", icon: "trending-up-outline" },
-    ],
-  },
-  {
-    title: "Hesaplayıcılar",
-    icon: "calculator-outline",
-    layout: "duo",
-    palette: CALC,
-    items: [
-      { key: "doviz-ceviricisi", screen: "DovizCeviricisi", title: "Döviz Çeviricisi", icon: "swap-horizontal-outline" },
-      { key: "altin-hesaplayici", screen: "AltinHesaplayici", title: "Altın Hesaplayıcı", icon: "diamond-outline" },
     ],
   },
 ];
@@ -536,6 +546,7 @@ const Tools = () => {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      <MastheadBanner bucket="diger" targeting={AD_TARGETING} />
       {SECTIONS.map((section) => {
         const featured = section.items[0];
         const rest = section.items.slice(1);
@@ -649,6 +660,9 @@ const Tools = () => {
         );
       })}
 
+      <LazyAdSlot reservedHeight={250}>
+        <MediumBanner bucket="diger" targeting={AD_TARGETING} />
+      </LazyAdSlot>
       <View style={{ height: 40 }} />
     </ScrollView>
   );

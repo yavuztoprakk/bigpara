@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "959195256238",
+    "project_id": "bigpara-51226",
+    "storage_bucket": "bigpara-51226.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:959195256238:android:75fb6da88a8876639c243f",
+        "android_client_info": {
+          "package_name": "com.foreks.android.bigpara"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0FItzx7IedsdQDIHfcgs35zNS16dcVPw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

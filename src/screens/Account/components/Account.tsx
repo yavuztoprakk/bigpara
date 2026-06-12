@@ -15,7 +15,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { updateInitialTab, InitialTab } from "../../Auth/modules/preferences";
+import VersionFooter from "./VersionFooter";
 import { useTheme } from "../../../theme/ThemeContext";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -28,8 +30,11 @@ import Animated, {
   interpolate,
 } from "react-native-reanimated";
 import * as Network from "expo-network";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { login as idealClientLogin, getConnectedServer } from "../../../modules/IdealClient";
+import {
+  login as idealClientLogin,
+  logout as idealClientLogout,
+  getConnectedServer,
+} from "../../../modules/IdealClient";
 import { transitionOverlayRef } from "../../../modules/transitionOverlay";
 import { login as setAuthLoading, resetLogin, logout } from "../../Auth/modules/auth";
 import store from "../../../store";
@@ -48,12 +53,16 @@ const TOTP_SECRET = "JBSWY3DPEHPK3PXP";
 const ACCENT = "#F07400";
 const EMPTY_LIST: any[] = [];
 
-const START_SCREEN_OPTIONS = [
-  { key: "Ekranım", icon: "list-outline", label: "Ekranım" },
-  { key: "Piyasalar", icon: "trending-up-outline", label: "Piyasalar" },
-  { key: "Haberler", icon: "newspaper-outline", label: "Haberler" },
-  { key: "Analiz", icon: "analytics-outline", label: "Analiz" },
-] as const;
+// Voltran BFF logout endpoint'i. Production geçişinde URL güncellenecek.
+const LOGOUT_ENDPOINT =
+  "https://voltran-bff-test.demirorenmedya.com/api/v1/hurriyet/Auth/Logout";
+
+const START_SCREEN_OPTIONS: ReadonlyArray<{ key: InitialTab; icon: string; label: string }> = [
+  { key: "WatchList", icon: "list-outline", label: "Ekranım" },
+  { key: "Markets", icon: "trending-up-outline", label: "Piyasalar" },
+  { key: "News", icon: "newspaper-outline", label: "Haberler" },
+  { key: "Tools", icon: "analytics-outline", label: "Analiz" },
+];
 
 // LinearGradient yön koordinatları
 const GRADIENT_VERTICAL_START = { x: 0.5, y: 0 } as const;
@@ -327,18 +336,6 @@ const Account = () => {
     });
   }, [navigation, isDark, toggleTheme]);
 
-  useEffect(() => {
-    // @startScreen sadece authenticated profil ekranında kullanılıyor.
-    // Login formu yolunda gereksiz AsyncStorage okumasını atla.
-    if (!isAuthenticated) return;
-    AsyncStorage.getItem("@startScreen")
-      .then((val) => {
-        if (val) setSelectedStartScreen(val);
-      })
-      .catch((error) => {
-        console.error("@startScreen okunamadı:", error);
-      });
-  }, [isAuthenticated]);
 
   const accent = "#F07400";
   const readable = isDark ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.68)";
@@ -354,7 +351,42 @@ const Account = () => {
         {
           text: "Çıkış Yap",
           style: "destructive",
-          onPress: () => (store.dispatch as any)(logout()),
+          onPress: () => {
+            // Voltran BFF logout — fire-and-forget: response beklemeden
+            // lokal logout devam eder. refreshToken state temizlenmeden
+            // önce alınıyor; sonradan dispatch çalışsa bile body hazır.
+            const refreshToken = store.getState().auth?.user?.refreshToken;
+            if (refreshToken) {
+              const body = { refreshToken };
+              console.log("[Logout] POST", LOGOUT_ENDPOINT);
+              console.log("[Logout] request body:", body);
+              fetch(LOGOUT_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+              })
+                .then(async (response) => {
+                  const data = await response.json().catch(() => null);
+                  console.log(
+                    "[Logout] response status:",
+                    response.status,
+                    response.ok ? "OK" : "FAIL"
+                  );
+                  console.log("[Logout] response data:", data);
+                })
+                .catch((error) => {
+                  console.log("[Logout] network error:", error);
+                });
+            } else {
+              console.log("[Logout] no refreshToken in auth state, skipping backend logout");
+            }
+
+            // Önce IdealClient modül state'ini temizle ve WS'i kapat.
+            // username temizlenmeden ws.close() çağrılırsa onclose handler
+            // otomatik reconnect tetikler (index.ts:417).
+            idealClientLogout();
+            (store.dispatch as any)(logout());
+          },
         },
       ]
     );
@@ -558,7 +590,8 @@ const Account = () => {
   };
 
   const [startScreenModalVisible, setStartScreenModalVisible] = useState(false);
-  const [selectedStartScreen, setSelectedStartScreen] = useState("Ekranım");
+  const dispatch = useDispatch();
+  const selectedStartScreen = useSelector((state: any) => state.preferences.initialTab);
   const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
 
   const startScreenOptions = START_SCREEN_OPTIONS;
@@ -870,7 +903,7 @@ const Account = () => {
             <ProfileMenuItem
               icon="cart-outline"
               label="Lisans Satın Al"
-              onPress={() => flashMessage({ type: "info", message: "Lisans satın alma sayfasına yönlendiriliyorsunuz" })}
+              onPress={() => flashMessage({ type: "info", message: "Yakında aktif olacak." })}
               isDark={isDark}
               accent={accent}
               theme={theme}
@@ -899,8 +932,29 @@ const Account = () => {
             />
           </StaggerIn>
 
-          {/* Hesap Sil & Çıkış */}
+          {/* Hakkımızda */}
           <StaggerIn index={6}>
+            <Text
+              style={[
+                profileStyles.sectionTitle,
+                { color: subtle, fontFamily: theme.boldFont },
+              ]}
+            >
+              HAKKIMIZDA
+            </Text>
+
+            <ProfileMenuItem
+              icon="information-circle-outline"
+              label="Hakkımızda"
+              onPress={() => navigation.navigate("Hakkimizda")}
+              isDark={isDark}
+              accent={accent}
+              theme={theme}
+            />
+          </StaggerIn>
+
+          {/* Hesap Sil & Çıkış */}
+          <StaggerIn index={7}>
             <View style={[profileStyles.dangerDivider, { backgroundColor: cardBorder }]} />
 
             <TouchableOpacity
@@ -954,6 +1008,8 @@ const Account = () => {
               </View>
             </TouchableOpacity>
           </StaggerIn>
+
+          <VersionFooter />
         </ScrollView>
 
         {/* Açılış Sayfası Modal */}
@@ -1030,8 +1086,7 @@ const Account = () => {
                       },
                     ]}
                     onPress={() => {
-                      setSelectedStartScreen(option.key);
-                      AsyncStorage.setItem("@startScreen", option.key);
+                      dispatch(updateInitialTab(option.key));
                       setStartScreenModalVisible(false);
                       flashMessage({ type: "success", message: `Açılış sayfası: ${option.label}` });
                     }}
@@ -1327,6 +1382,8 @@ const Account = () => {
             </View>
           </View>
         </StaggerIn>
+
+        <VersionFooter />
       </ScrollView>
 
       {/* ─── Şifremi Unuttum Modal ─── */}

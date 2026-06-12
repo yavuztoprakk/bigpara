@@ -2,6 +2,8 @@ import React from "react";
 import { FlatList } from "react-native-gesture-handler";
 import { CalendarEvent } from "../modules/list";
 import Row from "./Row";
+import ToolFooterAd from "../../../modules/ads/ToolFooterAd";
+import ToolMastheadAd from "../../../modules/ads/ToolMastheadAd";
 
 interface Props {
 	data?: CalendarEvent[];
@@ -19,6 +21,8 @@ const Calendar: React.FC<Props> = ({ data, save, hasImkbh }) => {
 			renderItem={({ item }) => (
 				<Row {...item} hasImkbh={hasImkbh} save={save} />
 			)}
+			ListHeaderComponent={ToolMastheadAd}
+			ListFooterComponent={ToolFooterAd}
 		/>
 	);
 }

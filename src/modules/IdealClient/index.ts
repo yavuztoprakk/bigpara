@@ -970,6 +970,8 @@ function processMessage(message: string) {
 
     const type = message.split(SEP1)[1];
 
+    //console.log("type ne geldi =>=>=>=>=>=>=>=>=>", type)
+
     // Önemli: LOG mesajı - Mesaj alındığını doğrulama
     if (type !== "26" && type !== "PING") {
         // Gereksiz logları önle

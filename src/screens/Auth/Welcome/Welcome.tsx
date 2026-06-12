@@ -20,12 +20,14 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Network from "expo-network";
 import * as Application from "expo-application";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../theme/ThemeContext";
 import flashMessage from "../../../modules/flashMessage";
 import { login as IdealClientLogin } from "../../../modules/IdealClient/index";
 import { transitionOverlayRef } from "../../../modules/transitionOverlay";
 import store from "../../../store";
 import { initiateLogin } from "../modules/login";
+import { useDispatch } from "react-redux";
 
 interface Props {
   navigation: any;
@@ -151,6 +153,9 @@ const Welcome: React.FC<Props> = ({ navigation }) => {
     navigation.navigate("Login");
   }, [navigation, demoLoading]);
 
+  const dispatch = useDispatch();
+  console.log("dispatch", dispatch)
+
   const loginToDemo = useCallback(async () => {
     // Çift tıklama koruması — misafir akışı sürerken yeniden tetiklenmesin.
     if (demoLoading) return;
@@ -179,13 +184,19 @@ const Welcome: React.FC<Props> = ({ navigation }) => {
       }
 
       const userId = `usergck_${deviceId}`;
-      IdealClientLogin(userId, "ColendiMenkul1", true, "0", "0");
-      store.dispatch(initiateLogin(true, true));
+      // Sembol tanımları cache'i — AsyncStorage'dan al; ilk açılışta yoksa "0"
+      // gider ve server tüm listeyi yeniden yollar.
+      const symbolLength =
+        (await AsyncStorage.getItem("@symbolDefinationlength")) || "0";
+      IdealClientLogin(userId, "password1", true, symbolLength, "0");
+      dispatch(initiateLogin(true, true));
       // Not: Başarılı akışta WebSocket login success → isAuthenticated=true →
-      // Stack switch → Welcome unmount olur. Stack geçişi onStateChange'i
-      // tetikleyip mevcut transition overlay fade-out logic'ine bağlanır,
-      // dolayısıyla burada hide() çağırmaya gerek yok. Hata durumunda catch
-      // bloğu hem state hem overlay'i sıfırlıyor.
+      // Stack switch → onStateChange → triggerTransitionOverlay overlay'i
+      // withDelay+withTiming ile UI thread'de fade-out eder. Burada hide()
+      // çağırmıyoruz, aksi halde Welcome'ın hâlâ ekranda olduğu sırada fade
+      // başlar, sonra nav switch'te overlay tekrar opacity=1'e snap olur =
+      // çirkin görsel. Hata durumunda catch bloğu hem state hem overlay'i
+      // sıfırlıyor.
     } catch (e: any) {
       console.error("loginToDemo failed:", e?.toString?.() ?? e);
       flashMessage({

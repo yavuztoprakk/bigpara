@@ -1,30 +1,85 @@
 {
   "expo": {
-    "name": "BigPara",
-    "slug": "BigPara",
-    "version": "1.0.0",
+    "name": "Bigpara",
+    "slug": "Bigpara",
+    "owner": "idealdata",
+    "scheme": "bigpara",
+    "version": "2.3.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/bigParaSplash.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/bigParaSplash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "buildNumber": "4",
+      "bundleIdentifier": "com.doganonline.bigpara",
+      "googleServicesFile": "./ios/Bigpara/GoogleService-Info.plist",
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIDesignRequiresCompatibility": true,
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ],
+        "FirebaseAppDelegateProxyEnabled": true
+      },
+      "entitlements": {
+        "aps-environment": "development"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "edgeToEdgeEnabled": false,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.foreks.android.bigpara",
+      "versionCode": 4,
+      "allowBackup": false,
+      "googleServicesFile": "./android/app/google-services.json",
+      "permissions": [
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      "@react-native-firebase/crashlytics",
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "Size daha alakalı reklamlar gösterebilmek için cihaz tanımlayıcınıza erişim izni istiyoruz."
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-4133813641255581~1004099213",
+          "iosAppId": "ca-app-pub-4133813641255581~8691017543",
+          "userTrackingUsageDescription": "Size daha alakalı reklamlar gösterebilmek için cihaz tanımlayıcınıza erişim izni istiyoruz."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "624be4c9-e5a6-4ca9-8ff4-5023b221185a"
+      }
+    },
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/624be4c9-e5a6-4ca9-8ff4-5023b221185a"
     }
   }
 }

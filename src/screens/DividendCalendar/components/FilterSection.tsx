@@ -1,7 +1,10 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, Platform, StyleSheet } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Modal, Platform, StyleSheet, Pressable } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../theme/ThemeContext';
+
+const ACCENT = '#F07400';
 
 interface FilterSectionProps {
     symbolSearch: string;
@@ -22,11 +25,7 @@ interface FilterSectionProps {
     setShowEndDatePicker: (value: boolean) => void;
 }
 
-const statusOptions = [
-    { label: 'Tümü', value: 'Tümü', icon: '📊' },
-    { label: 'Ödendi', value: 'Ödendi', icon: '✅' },
-    { label: 'Ödenecek', value: 'Ödenecek', icon: '⏳' }
-];
+type StatusOption = { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; color: string };
 
 const FilterSection: React.FC<FilterSectionProps> = ({
     symbolSearch,
@@ -47,345 +46,577 @@ const FilterSection: React.FC<FilterSectionProps> = ({
     setShowEndDatePicker,
 }) => {
     const { theme } = useTheme();
+    const isDark = theme.themeDetail === 'dark';
+
+    const text = theme.white;
+    const muted = isDark ? 'rgba(255,255,255,0.62)' : 'rgba(0,0,0,0.62)';
+    const subtle = isDark ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.40)';
+    const cardBg = isDark ? 'rgba(255,255,255,0.045)' : 'rgba(0,0,0,0.025)';
+    const cardBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    const modalBg = isDark ? '#181E26' : '#FFFFFF';
+    const overlayColor = 'rgba(0,0,0,0.55)';
+    const chipBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)';
+    const chipBorder = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
+    const dividerColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const dangerBg = isDark ? 'rgba(229,52,46,0.10)' : 'rgba(229,52,46,0.08)';
+
+    const statusOptions: StatusOption[] = [
+        { label: 'Tümü', value: 'Tümü', icon: 'apps-outline', color: ACCENT },
+        { label: 'Ödendi', value: 'Ödendi', icon: 'checkmark-circle-outline', color: theme.green },
+        { label: 'Ödenecek', value: 'Ödenecek', icon: 'time-outline', color: '#F0B400' },
+    ];
+
+    const activeStatus = statusOptions.find((o) => o.value === selectedStatus) || statusOptions[0];
+
+    // Dropdown'ı status butonunun gerçek konumuna yerleştir.
+    const statusBtnRef = useRef<View | null>(null);
+    const [dropdownAnchor, setDropdownAnchor] = useState<{ x: number; y: number; width: number } | null>(null);
+
+    const openStatusDropdown = useCallback(() => {
+        const node = statusBtnRef.current as any;
+        if (node?.measureInWindow) {
+            node.measureInWindow((x: number, y: number, w: number, h: number) => {
+                setDropdownAnchor({ x, y: y + h + 6, width: w });
+                setShowStatusDropdown(true);
+            });
+        } else {
+            setShowStatusDropdown(true);
+        }
+    }, [setShowStatusDropdown]);
+
+    const handleClear = useCallback(() => {
+        setStartDate('');
+        setEndDate('');
+        setShowStartDatePicker(false);
+        setShowEndDatePicker(false);
+        setShowDateFilter(false);
+    }, [setStartDate, setEndDate, setShowStartDatePicker, setShowEndDatePicker, setShowDateFilter]);
+
+    const handleApply = useCallback(() => {
+        setShowStartDatePicker(false);
+        setShowEndDatePicker(false);
+        setShowDateFilter(false);
+    }, [setShowStartDatePicker, setShowEndDatePicker, setShowDateFilter]);
+
     return (
         <View style={styles.filterContainer}>
             <View style={styles.filterRow}>
+                {/* Sembol arama */}
                 <View style={styles.searchContainer}>
-                    <View style={[
-                        styles.searchInputContainer,
-                        { backgroundColor: theme.darkBrand, borderColor: theme.onBlue },
-                        Platform.OS === 'android' && { height: 42 }
-                    ]}>
-                        <Text style={styles.searchIcon}>🔍</Text>
+                    <View
+                        style={[
+                            styles.controlBase,
+                            { backgroundColor: cardBg, borderColor: cardBorder },
+                        ]}
+                    >
+                        <Ionicons name="search-outline" size={15} color={subtle} style={styles.iconLeft} />
                         <TextInput
-                            style={[styles.searchInput, { color: theme.onBlue }]}
+                            style={[styles.searchInput, { color: text, fontFamily: theme.regularFont }]}
                             placeholder="Sembol"
-                            placeholderTextColor={theme.onBlue}
+                            placeholderTextColor={subtle}
                             value={symbolSearch}
                             onChangeText={setSymbolSearch}
-                            autoCapitalize="characters" />
+                            autoCapitalize="characters"
+                        />
                     </View>
                 </View>
 
+                {/* Durum dropdown */}
                 <View style={styles.statusContainer}>
                     <TouchableOpacity
-                        style={[styles.dropdownButton, { backgroundColor: theme.darkBrand, borderColor: theme.onBlue }]}
-                        onPress={() => setShowStatusDropdown(true)}
+                        activeOpacity={0.7}
+                        ref={statusBtnRef as any}
+                        style={[
+                            styles.controlBase,
+                            { backgroundColor: cardBg, borderColor: cardBorder },
+                        ]}
+                        onPress={openStatusDropdown}
                     >
-                        <View style={styles.dropdownButtonContent}>
-                            <Text style={styles.dropdownButtonIcon}>
-                                {statusOptions.find(opt => opt.value === selectedStatus)?.icon || '🔄'}
-                            </Text>
-                            <Text style={[styles.dropdownButtonText, { color: theme.onBlue }]}>
-                                {selectedStatus}
-                            </Text>
-                        </View>
-                        <Text style={styles.dropdownArrow}>▼</Text>
+                        <Ionicons name={activeStatus.icon} size={15} color={activeStatus.color} style={styles.iconLeft} />
+                        <Text
+                            style={[styles.controlText, { color: text, fontFamily: theme.regularFont }]}
+                            numberOfLines={1}
+                        >
+                            {activeStatus.label}
+                        </Text>
+                        <Ionicons name="chevron-down" size={14} color={subtle} />
                     </TouchableOpacity>
                 </View>
 
+                {/* Tarih butonu */}
                 <View style={styles.dateContainer}>
                     <TouchableOpacity
-                        style={[styles.dateButton, { backgroundColor: theme.darkBrand, borderColor: theme.onBlue }, (startDate || endDate) ? styles.dateButtonActive : null]}
+                        activeOpacity={0.7}
+                        style={[
+                            styles.controlBase,
+                            {
+                                backgroundColor: cardBg,
+                                borderColor: startDate || endDate ? ACCENT + '60' : cardBorder,
+                            },
+                        ]}
                         onPress={() => setShowDateFilter(true)}
                     >
-                        <View style={styles.dateButtonContent}>
-                            <Text style={styles.dateButtonIcon}>📅</Text>
-                            <Text style={[styles.dateButtonText, (startDate || endDate) ? styles.dateButtonTextActive : null]}>
-                                Tarih
-                            </Text>
-                        </View>
+                        <Ionicons
+                            name="calendar-outline"
+                            size={15}
+                            color={startDate || endDate ? ACCENT : subtle}
+                            style={styles.iconLeft}
+                        />
+                        <Text
+                            style={[
+                                styles.controlText,
+                                {
+                                    color: startDate || endDate ? ACCENT : text,
+                                    fontFamily: theme.regularFont,
+                                },
+                            ]}
+                            numberOfLines={1}
+                        >
+                            Tarih
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {/* Status Dropdown Modal */}
+            {/* ─── Durum Dropdown Modal ─── */}
             <Modal
                 visible={showStatusDropdown}
-                transparent={true}
+                transparent
                 animationType="fade"
                 onRequestClose={() => setShowStatusDropdown(false)}
             >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
+                <Pressable
+                    style={styles.transparentOverlay}
                     onPress={() => setShowStatusDropdown(false)}
                 >
-                    <View style={[
-                        styles.dropdownModal,
-                        styles.statusDropdownPosition,
-                        Platform.OS === 'android' && { top: 115, right: 140 }
-                    ]}>
-                        {statusOptions.map((option, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                style={[
-                                    styles.dropdownOption,
-                                    selectedStatus === option.value && styles.selectedOption,
-                                    index === statusOptions.length - 1 && styles.lastOption
-                                ]}
-                                onPress={() => {
-                                    setSelectedStatus(option.value);
-                                    setShowStatusDropdown(false);
-                                }}
-                            >
-                                <View style={styles.dropdownOptionContent}>
-                                    <Text style={styles.dropdownIcon}>{option.icon}</Text>
-                                    <Text style={[
-                                        styles.dropdownOptionText,
-                                        selectedStatus === option.value && styles.selectedOptionText
-                                    ]}>
-                                        {option.label}
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </TouchableOpacity>
+                    {dropdownAnchor ? (
+                        <View
+                            style={[
+                                styles.statusDropdown,
+                                {
+                                    top: dropdownAnchor.y,
+                                    left: dropdownAnchor.x,
+                                    width: Math.max(dropdownAnchor.width, 160),
+                                    backgroundColor: modalBg,
+                                    borderColor: cardBorder,
+                                    shadowOpacity: isDark ? 0.45 : 0.15,
+                                },
+                            ]}
+                        >
+                            {statusOptions.map((option, index) => {
+                                const isSelected = selectedStatus === option.value;
+                                return (
+                                    <TouchableOpacity
+                                        key={option.value}
+                                        activeOpacity={0.7}
+                                        style={[
+                                            styles.dropdownOption,
+                                            index !== statusOptions.length - 1 && {
+                                                borderBottomWidth: StyleSheet.hairlineWidth,
+                                                borderBottomColor: dividerColor,
+                                            },
+                                            isSelected && { backgroundColor: ACCENT + '12' },
+                                        ]}
+                                        onPress={() => {
+                                            setSelectedStatus(option.value);
+                                            setShowStatusDropdown(false);
+                                        }}
+                                    >
+                                        <Ionicons
+                                            name={option.icon}
+                                            size={16}
+                                            color={isSelected ? ACCENT : option.color}
+                                            style={{ marginRight: 10 }}
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.dropdownOptionText,
+                                                {
+                                                    color: isSelected ? ACCENT : text,
+                                                    fontFamily: isSelected ? theme.boldFont : theme.regularFont,
+                                                },
+                                            ]}
+                                        >
+                                            {option.label}
+                                        </Text>
+                                        {isSelected ? (
+                                            <Ionicons
+                                                name="checkmark"
+                                                size={16}
+                                                color={ACCENT}
+                                                style={{ marginLeft: 'auto' }}
+                                            />
+                                        ) : null}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    ) : null}
+                </Pressable>
             </Modal>
 
-            {/* Date Filter Modal */}
+            {/* ─── Tarih Filtresi Modal ─── */}
             <Modal
                 visible={showDateFilter}
                 transparent
-                animationType="slide"
+                animationType="fade"
+                statusBarTranslucent
                 onRequestClose={() => setShowDateFilter(false)}
             >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
+                <Pressable
+                    style={[styles.modalOverlay, { backgroundColor: overlayColor }]}
                     onPress={() => setShowDateFilter(false)}
                 >
-                    <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-                        <View style={styles.dateFilterModal}>
-                            <Text style={styles.dateFilterTitle}>Tarih Filtresi</Text>
+                    <Pressable style={styles.modalCardWrap} onPress={() => {}}>
+                        <View
+                            style={[
+                                styles.dateFilterModal,
+                                { backgroundColor: modalBg, borderColor: cardBorder },
+                            ]}
+                        >
+                            {/* Header */}
+                            <View style={styles.dateModalHeader}>
+                                <View style={[styles.headerIconWrap, { backgroundColor: ACCENT + '18' }]}>
+                                    <Ionicons name="calendar" size={18} color={ACCENT} />
+                                </View>
+                                <Text
+                                    style={[
+                                        styles.dateFilterTitle,
+                                        { color: text, fontFamily: theme.boldFont },
+                                    ]}
+                                >
+                                    Tarih Filtresi
+                                </Text>
+                                <TouchableOpacity
+                                    style={styles.closeBtn}
+                                    onPress={() => setShowDateFilter(false)}
+                                >
+                                    <Ionicons name="close" size={18} color={muted} />
+                                </TouchableOpacity>
+                            </View>
 
-                            {/* Başlangıç Tarihi */}
-                            <View style={styles.datePickerContainer}>
-                                <Text style={styles.dateLabel}>Başlangıç Tarihi:</Text>
+                            <View style={[styles.headerDivider, { backgroundColor: dividerColor }]} />
+
+                            {/* Başlangıç */}
+                            <View style={styles.dateSection}>
+                                <Text
+                                    style={[
+                                        styles.dateLabel,
+                                        { color: muted, fontFamily: theme.boldFont },
+                                    ]}
+                                >
+                                    BAŞLANGIÇ TARİHİ
+                                </Text>
 
                                 <TouchableOpacity
-                                    style={styles.datePickerButton}
+                                    activeOpacity={0.7}
+                                    style={[
+                                        styles.dateInputButton,
+                                        { backgroundColor: cardBg, borderColor: cardBorder },
+                                    ]}
                                     onPress={() => setShowStartDatePicker(true)}
                                 >
-                                    <Text style={styles.datePickerText}>
+                                    <Text
+                                        style={[
+                                            styles.dateInputText,
+                                            {
+                                                color: startDate ? text : subtle,
+                                                fontFamily: startDate ? theme.boldFont : theme.regularFont,
+                                            },
+                                        ]}
+                                    >
                                         {startDate ? new Date(startDate).toLocaleDateString('tr-TR') : 'Tarih Seç'}
                                     </Text>
-                                    <Text style={styles.calendarIcon}>📅</Text>
+                                    <Ionicons name="calendar-outline" size={16} color={ACCENT} />
                                 </TouchableOpacity>
 
-                                {/* 3 hızlı seçim */}
-                                <View style={styles.quickDateButtons}>
-                                    <TouchableOpacity
-                                        style={styles.quickDateButton}
+                                <View style={styles.chipsRow}>
+                                    <Chip
+                                        label="Bugün"
+                                        bg={chipBg}
+                                        border={chipBorder}
+                                        textColor={text}
+                                        fontFamily={theme.regularFont}
                                         onPress={() => setStartDate(new Date().toISOString().split('T')[0])}
-                                    >
-                                        <Text style={styles.quickDateText}>Bugün</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.quickDateButton}
+                                    />
+                                    <Chip
+                                        label="1 Hafta Önce"
+                                        bg={chipBg}
+                                        border={chipBorder}
+                                        textColor={text}
+                                        fontFamily={theme.regularFont}
                                         onPress={() => {
                                             const d = new Date();
                                             d.setDate(d.getDate() - 7);
                                             setStartDate(d.toISOString().split('T')[0]);
                                         }}
-                                    >
-                                        <Text style={styles.quickDateText}>1 Hafta Önce</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.quickDateButton}
+                                    />
+                                    <Chip
+                                        label="1 Ay Önce"
+                                        bg={chipBg}
+                                        border={chipBorder}
+                                        textColor={text}
+                                        fontFamily={theme.regularFont}
                                         onPress={() => {
                                             const d = new Date();
                                             d.setMonth(d.getMonth() - 1);
                                             setStartDate(d.toISOString().split('T')[0]);
                                         }}
-                                    >
-                                        <Text style={styles.quickDateText}>1 Ay Önce</Text>
-                                    </TouchableOpacity>
+                                    />
                                 </View>
                             </View>
 
-                            {/* Bitiş Tarihi */}
-                            <View style={styles.datePickerContainer}>
-                                <Text style={styles.dateLabel}>Bitiş Tarihi (İsteğe bağlı):</Text>
+                            {/* Bitiş */}
+                            <View style={styles.dateSection}>
+                                <Text
+                                    style={[
+                                        styles.dateLabel,
+                                        { color: muted, fontFamily: theme.boldFont },
+                                    ]}
+                                >
+                                    BİTİŞ TARİHİ (İSTEĞE BAĞLI)
+                                </Text>
 
                                 <TouchableOpacity
-                                    style={styles.datePickerButton}
+                                    activeOpacity={0.7}
+                                    style={[
+                                        styles.dateInputButton,
+                                        { backgroundColor: cardBg, borderColor: cardBorder },
+                                    ]}
                                     onPress={() => setShowEndDatePicker(true)}
                                 >
-                                    <Text style={styles.datePickerText}>
+                                    <Text
+                                        style={[
+                                            styles.dateInputText,
+                                            {
+                                                color: endDate ? text : subtle,
+                                                fontFamily: endDate ? theme.boldFont : theme.regularFont,
+                                            },
+                                        ]}
+                                    >
                                         {endDate ? new Date(endDate).toLocaleDateString('tr-TR') : 'Tarih Seç'}
                                     </Text>
-                                    <Text style={styles.calendarIcon}>📅</Text>
+                                    <Ionicons name="calendar-outline" size={16} color={ACCENT} />
                                 </TouchableOpacity>
 
-                                {/* 3 hızlı seçim */}
-                                <View style={styles.quickDateButtons}>
-                                    <TouchableOpacity
-                                        style={styles.quickDateButton}
+                                <View style={styles.chipsRow}>
+                                    <Chip
+                                        label="Bugün"
+                                        bg={chipBg}
+                                        border={chipBorder}
+                                        textColor={text}
+                                        fontFamily={theme.regularFont}
                                         onPress={() => setEndDate(new Date().toISOString().split('T')[0])}
-                                    >
-                                        <Text style={styles.quickDateText}>Bugün</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.quickDateButton}
+                                    />
+                                    <Chip
+                                        label="1 Ay Sonra"
+                                        bg={chipBg}
+                                        border={chipBorder}
+                                        textColor={text}
+                                        fontFamily={theme.regularFont}
                                         onPress={() => {
                                             const d = new Date();
                                             d.setMonth(d.getMonth() + 1);
                                             setEndDate(d.toISOString().split('T')[0]);
                                         }}
-                                    >
-                                        <Text style={styles.quickDateText}>1 Ay Sonra</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.quickDateButton}
+                                    />
+                                    <Chip
+                                        label="1 Yıl Sonra"
+                                        bg={chipBg}
+                                        border={chipBorder}
+                                        textColor={text}
+                                        fontFamily={theme.regularFont}
                                         onPress={() => {
                                             const d = new Date();
                                             d.setFullYear(d.getFullYear() + 1);
                                             setEndDate(d.toISOString().split('T')[0]);
                                         }}
-                                    >
-                                        <Text style={styles.quickDateText}>1 Yıl Sonra</Text>
-                                    </TouchableOpacity>
+                                    />
                                 </View>
                             </View>
 
-                            <Text style={styles.dateHint}>
-                                • Tek tarih için sadece başlangıç tarihini seçin{'\n'}
-                                • Aralık için her iki tarihi de seçin{'\n'}
-                            </Text>
+                            {/* Bilgilendirme */}
+                            <View
+                                style={[
+                                    styles.hintBox,
+                                    { backgroundColor: cardBg, borderColor: cardBorder },
+                                ]}
+                            >
+                                <Ionicons name="information-circle-outline" size={15} color={ACCENT} style={{ marginRight: 8, marginTop: 1 }} />
+                                <Text style={[styles.hintText, { color: muted, fontFamily: theme.regularFont }]}>
+                                    Tek tarih için sadece başlangıç tarihini seçin. Aralık için her iki tarihi de seçin.
+                                </Text>
+                            </View>
 
+                            {/* Aksiyon butonları */}
                             <View style={styles.dateButtonsContainer}>
                                 <TouchableOpacity
-                                    style={styles.clearButton}
-                                    onPress={() => {
-                                        setStartDate('');
-                                        setEndDate('');
-                                        setShowStartDatePicker(false);
-                                        setShowEndDatePicker(false);
-                                        setShowDateFilter(false);
-                                    }}
+                                    activeOpacity={0.85}
+                                    style={[styles.clearButton, { backgroundColor: dangerBg, borderColor: theme.red + '40' }]}
+                                    onPress={handleClear}
                                 >
-                                    <Text style={styles.clearButtonText}>Temizle</Text>
+                                    <Ionicons name="trash-outline" size={15} color={theme.red} style={{ marginRight: 6 }} />
+                                    <Text style={[styles.clearButtonText, { color: theme.red, fontFamily: theme.boldFont }]}>
+                                        Temizle
+                                    </Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    style={styles.applyButton}
-                                    onPress={() => {
-                                        setShowStartDatePicker(false);
-                                        setShowEndDatePicker(false);
-                                        setShowDateFilter(false);
-                                    }}
+                                    activeOpacity={0.85}
+                                    style={[styles.applyButton, { backgroundColor: ACCENT }]}
+                                    onPress={handleApply}
                                 >
-                                    <Text style={styles.applyButtonText}>Uygula</Text>
+                                    <Ionicons name="checkmark" size={16} color="#fff" style={{ marginRight: 6 }} />
+                                    <Text style={[styles.applyButtonText, { fontFamily: theme.boldFont }]}>
+                                        Uygula
+                                    </Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
-                    </TouchableOpacity>
-                </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            </Modal>
 
-                {/* === Mini Picker – Başlangıç === */}
-                <Modal
-                    visible={showStartDatePicker}
-                    transparent
-                    animationType="fade"
-                    onRequestClose={() => setShowStartDatePicker(false)}
+            {/* === Mini Picker — Başlangıç === */}
+            <Modal
+                visible={showStartDatePicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowStartDatePicker(false)}
+            >
+                <Pressable
+                    style={[styles.modalOverlay, { backgroundColor: overlayColor }]}
+                    onPress={() => setShowStartDatePicker(false)}
                 >
-                    <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={() => setShowStartDatePicker(false)}
-                    >
-                        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-                            <View style={styles.miniPickerCard}>
-                                <Text style={styles.miniPickerHeader}>Başlangıç Tarihi</Text>
-                                <DateTimePicker
-                                    value={startDate ? new Date(startDate) : new Date()}
-                                    mode="date"
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-                                    textColor="white"
-                                    locale="tr-TR"
-                                    onChange={(event, selectedDate) => {
-                                        if (selectedDate) {
-                                            setStartDate(selectedDate.toISOString().split('T')[0]);
-                                        }
-                                        if (Platform.OS === 'android') setShowStartDatePicker(false);
-                                    }}
-                                    maximumDate={endDate ? new Date(endDate) : undefined}
-                                />
-                                <View style={styles.miniPickerActions}>
-                                    <TouchableOpacity
-                                        style={styles.miniPickerBtn}
-                                        onPress={() => setShowStartDatePicker(false)}
-                                    >
-                                        <Text style={styles.miniPickerBtnText}>İptal</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.miniPickerBtn}
-                                        onPress={() => setShowStartDatePicker(false)}
-                                    >
-                                        <Text style={styles.miniPickerBtnText}>Seç</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    </TouchableOpacity>
-                </Modal>
+                    <Pressable style={styles.modalCardWrap} onPress={() => {}}>
+                        <View
+                            style={[
+                                styles.miniPickerCard,
+                                { backgroundColor: modalBg, borderColor: cardBorder },
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    styles.miniPickerHeader,
+                                    { color: text, fontFamily: theme.boldFont },
+                                ]}
+                            >
+                                Başlangıç Tarihi
+                            </Text>
+                            <DateTimePicker
+                                value={startDate ? new Date(startDate) : new Date()}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+                                textColor={text}
+                                locale="tr-TR"
+                                onChange={(_event, selectedDate) => {
+                                    if (selectedDate) {
+                                        setStartDate(selectedDate.toISOString().split('T')[0]);
+                                    }
+                                    if (Platform.OS === 'android') setShowStartDatePicker(false);
+                                }}
+                                maximumDate={endDate ? new Date(endDate) : undefined}
+                            />
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                style={[styles.miniPickerConfirm, { backgroundColor: ACCENT }]}
+                                onPress={() => setShowStartDatePicker(false)}
+                            >
+                                <Text style={[styles.miniPickerConfirmText, { fontFamily: theme.boldFont }]}>
+                                    Tamam
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Pressable>
+                </Pressable>
+            </Modal>
 
-                {/* === Mini Picker – Bitiş === */}
-                <Modal
-                    visible={showEndDatePicker}
-                    transparent
-                    animationType="fade"
-                    onRequestClose={() => setShowEndDatePicker(false)}
+            {/* === Mini Picker — Bitiş === */}
+            <Modal
+                visible={showEndDatePicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowEndDatePicker(false)}
+            >
+                <Pressable
+                    style={[styles.modalOverlay, { backgroundColor: overlayColor }]}
+                    onPress={() => setShowEndDatePicker(false)}
                 >
-                    <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={() => setShowEndDatePicker(false)}
-                    >
-                        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-                            <View style={styles.miniPickerCard}>
-                                <Text style={styles.miniPickerHeader}>Bitiş Tarihi</Text>
-                                <DateTimePicker
-                                    value={endDate ? new Date(endDate) : new Date()}
-                                    mode="date"
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-                                    textColor="white"
-                                    locale="tr-TR"
-                                    onChange={(event, selectedDate) => {
-                                        if (selectedDate) {
-                                            setEndDate(selectedDate.toISOString().split('T')[0]);
-                                        }
-                                        if (Platform.OS === 'android') setShowEndDatePicker(false);
-                                    }}
-                                    minimumDate={startDate ? new Date(startDate) : undefined}
-                                />
-                                <View style={styles.miniPickerActions}>
-                                    <TouchableOpacity
-                                        style={styles.miniPickerBtn}
-                                        onPress={() => setShowEndDatePicker(false)}
-                                    >
-                                        <Text style={styles.miniPickerBtnText}>İptal</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.miniPickerBtn}
-                                        onPress={() => setShowEndDatePicker(false)}
-                                    >
-                                        <Text style={styles.miniPickerBtnText}>Seç</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    </TouchableOpacity>
-                </Modal>
+                    <Pressable style={styles.modalCardWrap} onPress={() => {}}>
+                        <View
+                            style={[
+                                styles.miniPickerCard,
+                                { backgroundColor: modalBg, borderColor: cardBorder },
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    styles.miniPickerHeader,
+                                    { color: text, fontFamily: theme.boldFont },
+                                ]}
+                            >
+                                Bitiş Tarihi
+                            </Text>
+                            <DateTimePicker
+                                value={endDate ? new Date(endDate) : new Date()}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+                                textColor={text}
+                                locale="tr-TR"
+                                onChange={(_event, selectedDate) => {
+                                    if (selectedDate) {
+                                        setEndDate(selectedDate.toISOString().split('T')[0]);
+                                    }
+                                    if (Platform.OS === 'android') setShowEndDatePicker(false);
+                                }}
+                                minimumDate={startDate ? new Date(startDate) : undefined}
+                            />
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                style={[styles.miniPickerConfirm, { backgroundColor: ACCENT }]}
+                                onPress={() => setShowEndDatePicker(false)}
+                            >
+                                <Text style={[styles.miniPickerConfirmText, { fontFamily: theme.boldFont }]}>
+                                    Tamam
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Pressable>
+                </Pressable>
             </Modal>
         </View>
     );
 };
 
+// Tek satırlık quick-date chip butonu — equal-width, taşma yok.
+const Chip: React.FC<{
+    label: string;
+    bg: string;
+    border: string;
+    textColor: string;
+    fontFamily: string;
+    onPress: () => void;
+}> = ({ label, bg, border, textColor, fontFamily, onPress }) => (
+    <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={onPress}
+        style={[styles.chip, { backgroundColor: bg, borderColor: border }]}
+    >
+        <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            style={[styles.chipText, { color: textColor, fontFamily }]}
+        >
+            {label}
+        </Text>
+    </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
     filterContainer: {
-        marginBottom: 20,
+        marginBottom: 14,
     },
     filterRow: {
         flexDirection: 'row',
@@ -400,259 +631,228 @@ const styles = StyleSheet.create({
     dateContainer: {
         flex: 1,
     },
-    searchInputContainer: {
-        borderRadius: 8,
+    controlBase: {
+        height: 42,
+        borderRadius: 10,
         paddingHorizontal: 10,
-        paddingVertical: 10,
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#2A2A2A',
-        gap: 8,
     },
-    searchIcon: {
-        color: '#666',
-        fontSize: 14,
+    iconLeft: {
+        marginRight: 7,
     },
     searchInput: {
         flex: 1,
-        fontSize: 14,
+        fontSize: 13.5,
         padding: 0,
     },
-    dropdownButton: {
-        backgroundColor: '#1A1A1A',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 10,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#2A2A2A',
+    controlText: {
+        flex: 1,
+        fontSize: 13.5,
     },
-    dropdownButtonContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    dropdownButtonIcon: {
-        fontSize: 14,
-    },
-    dropdownButtonText: {
-        color: 'white',
-        fontSize: 14,
-    },
-    dropdownArrow: {
-        color: '#666',
-        fontSize: 10,
-    },
-    dateButton: {
-        backgroundColor: '#1A1A1A',
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: '#2A2A2A',
-    },
-    dateButtonContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    dateButtonIcon: {
-        fontSize: 14,
-    },
-    dateButtonActive: {
-        borderColor: '#4CAF50',
-    },
-    dateButtonText: {
-        color: 'white',
-        fontSize: 14,
-    },
-    dateButtonTextActive: {
-        color: '#4CAF50',
-    },
+
+    // Modal overlays
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    dropdownModal: {
-        backgroundColor: '#1A1A1A',
-        borderRadius: 8,
-        minWidth: 120,
-        borderWidth: 1,
-        borderColor: '#2A2A2A',
+    modalCardWrap: {
+        width: '100%',
+        alignItems: 'center',
     },
-    statusDropdownPosition: {
+    transparentOverlay: {
+        flex: 1,
+    },
+
+    // Status dropdown
+    statusDropdown: {
         position: 'absolute',
-        top: 150,
-        right: 130,
+        borderWidth: 1,
+        borderRadius: 12,
+        paddingVertical: 4,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 8 },
+                shadowRadius: 16,
+            },
+            android: { elevation: 8 },
+        }),
     },
     dropdownOption: {
-        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
         paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#2A2A2A',
-    },
-    lastOption: {
-        borderBottomWidth: 0,
-    },
-    selectedOption: {
-        backgroundColor: '#2A2A2A',
     },
     dropdownOptionText: {
-        color: 'white',
         fontSize: 14,
     },
-    selectedOptionText: {
-        color: '#4CAF50',
-        fontWeight: '600',
+
+    // Date filter modal
+    dateFilterModal: {
+        borderRadius: 18,
+        padding: 18,
+        width: '90%',
+        maxWidth: 460,
+        borderWidth: 1,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 12 },
+                shadowOpacity: 0.35,
+                shadowRadius: 22,
+            },
+            android: { elevation: 14 },
+        }),
     },
-    dropdownOptionContent: {
+    dateModalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        marginBottom: 14,
     },
-    dropdownIcon: {
-        fontSize: 16,
-    },
-    dateFilterModal: {
-        backgroundColor: '#1A1A1A',
-        borderRadius: 12,
-        padding: 20,
-        marginHorizontal: 16,
-        marginVertical: 40,
-        borderWidth: 1,
-        borderColor: '#2A2A2A',
-        maxHeight: '85%',
-        width: '92%',
-        alignSelf: 'center',
+    headerIconWrap: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
     },
     dateFilterTitle: {
-        color: 'white',
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
+        flex: 1,
+        fontSize: 16,
+        letterSpacing: 0.2,
     },
-    datePickerContainer: {
-        marginBottom: 16,
+    closeBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerDivider: {
+        height: StyleSheet.hairlineWidth,
+        marginBottom: 14,
+    },
+    dateSection: {
+        marginBottom: 14,
     },
     dateLabel: {
-        color: 'white',
-        fontSize: 14,
+        fontSize: 10.5,
+        letterSpacing: 0.6,
         marginBottom: 8,
+        marginLeft: 2,
     },
-    datePickerButton: {
-        backgroundColor: '#2A2A2A',
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 12,
+    dateInputButton: {
+        height: 44,
+        borderRadius: 12,
+        paddingHorizontal: 14,
         borderWidth: 1,
-        borderColor: '#3A3A3A',
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        justifyContent: 'space-between',
     },
-    datePickerText: {
-        color: 'white',
-        fontSize: 16,
+    dateInputText: {
+        fontSize: 14.5,
     },
-    calendarIcon: {
-        fontSize: 16,
-    },
-    quickDateButtons: {
+    chipsRow: {
         flexDirection: 'row',
         gap: 8,
-        marginTop: 8,
-        flexWrap: 'wrap',
+        marginTop: 10,
     },
-    quickDateButton: {
-        backgroundColor: '#3A3A3A',
+    chip: {
+        flex: 1,
         paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
+        paddingVertical: 7,
+        borderRadius: 999,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    quickDateText: {
-        color: 'white',
-        fontSize: 12,
+    chipText: {
+        fontSize: 11.5,
+        textAlign: 'center',
     },
-    dateHint: {
-        color: 'white',
-        fontSize: 12,
-        marginBottom: 12,
-        lineHeight: 18,
+    hintBox: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        padding: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 14,
+    },
+    hintText: {
+        flex: 1,
+        fontSize: 11.5,
+        lineHeight: 16,
     },
     dateButtonsContainer: {
         flexDirection: 'row',
-        gap: 12,
-        marginTop: 8,
+        gap: 10,
     },
     clearButton: {
         flex: 1,
-        backgroundColor: '#444',
-        borderRadius: 8,
-        paddingVertical: 12,
+        height: 44,
+        borderRadius: 12,
+        borderWidth: 1,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     clearButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 14,
+        letterSpacing: 0.2,
     },
     applyButton: {
-        flex: 1,
-        backgroundColor: '#4CAF50',
-        borderRadius: 8,
-        paddingVertical: 12,
+        flex: 1.4,
+        height: 44,
+        borderRadius: 12,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     applyButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '600',
+        color: '#fff',
+        fontSize: 14,
+        letterSpacing: 0.2,
     },
+
+    // Mini date picker (spinner)
     miniPickerCard: {
-        backgroundColor: '#1A1A1A',
-        borderRadius: 12,
-        padding: 16,
-        marginHorizontal: 32,
+        borderRadius: 16,
+        padding: 14,
         borderWidth: 1,
-        borderColor: '#2A2A2A',
-        width: '80%',
-        alignSelf: 'center',
+        width: '82%',
+        maxWidth: 420,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.35,
+                shadowRadius: 18,
+            },
+            android: { elevation: 12 },
+        }),
     },
     miniPickerHeader: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: '700',
+        fontSize: 15,
         textAlign: 'center',
-        marginBottom: 8,
+        marginBottom: 6,
     },
-    miniPickerActions: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    miniPickerConfirm: {
         marginTop: 8,
-        gap: 12,
-    },
-    miniPickerBtn: {
-        flex: 1,
-        backgroundColor: '#2A2A2A',
-        borderRadius: 8,
-        paddingVertical: 10,
+        height: 42,
+        borderRadius: 12,
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#3A3A3A',
+        justifyContent: 'center',
     },
-    miniPickerBtnText: {
-        color: 'white',
+    miniPickerConfirmText: {
+        color: '#fff',
         fontSize: 14,
-        fontWeight: '600',
     },
 });
 
-export default FilterSection; 
+export default FilterSection;

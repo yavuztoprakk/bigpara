@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import { Platform, StatusBar, View, StyleSheet, InteractionManager, Image } from "react-native";
+import { Platform, StatusBar, View, StyleSheet, Image } from "react-native";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useSelector } from "react-redux";
@@ -20,7 +20,7 @@ import ThemeChange from "../components/ThemeChange";
 import { createStackOptions } from "./common";
 import { useDispatch } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { login, ws } from "../modules/IdealClient";
+import { login, logout as idealClientLogout, ws } from "../modules/IdealClient";
 import { transitionOverlayRef } from "../modules/transitionOverlay";
 import Welcome from "../screens/Auth/Welcome/Welcome";
 import AccountLogin from "../screens/Account/components/Account";
@@ -38,6 +38,34 @@ import { persistToken } from "../modules/pushNotifications";
 import SMSGGO from "../screens/Auth/Login/SMSGGO";
 import CalendarContainer from "../screens/Calendar/containers/CalendarContainer";
 import DividendCalendar from "../screens/DividendCalendar";
+import { maybeShowInterstitial, setNextTargeting, cancelPendingShow } from "../modules/ads/interstitial";
+import { getInterstitialTargeting } from "../modules/ads/interstitialTargeting";
+
+// Interstitial bu route'larda gösterilmez:
+// - Auth ekranları (kullanıcı henüz giriş yapmadı)
+// - WatchListScreen + AccountScreen (Ekranım/Hesabım = anasayfa bucket,
+//   Excel'de interstitial sadece diger bucket'ta tanımlı)
+const NO_INTERSTITIAL_ROUTES = new Set([
+  "Welcome",
+  "AccountLogin",
+  "AuthRegister",
+  "OtpVerify",
+  "SetPassword",
+  "CompleteProfile",
+  "SMSGGO",
+  "WatchListScreen",
+  "AccountScreen",
+]);
+
+// Interstitial'ı KOMPONENT KENDİSİ yönetiyor:
+// - Markets/MarketsHome: top-tab durumuna göre (Piyasa Özeti vs Piyasalar)
+//   MarketsHome komponentindeki useFocusEffect setNextTargeting + maybeShow
+//   çağırır. AppNavigator bu route'larda hiç targeting atamaz, aksi halde
+//   GAM'a ardışık iki request gider (önce piyasalar, sonra piyasa-ozeti).
+const SELF_MANAGED_INTERSTITIAL_ROUTES = new Set([
+  "Markets",
+  "MarketsHome",
+]);
 
 const AuthHeaderLogo = () => (
   <Image
@@ -95,7 +123,6 @@ export default function RootNavigation({ onNavigationStateChange }) {
   const dot2 = useSharedValue(0.25);
   const dot3 = useSharedValue(0.25);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const interactionHandleRef = useRef<{ cancel: () => void } | null>(null);
 
   useEffect(() => {
     if (LOADER_VARIANT !== "logo") return;
@@ -129,10 +156,6 @@ export default function RootNavigation({ onNavigationStateChange }) {
         clearTimeout(hideTimeoutRef.current);
         hideTimeoutRef.current = null;
       }
-      if (interactionHandleRef.current) {
-        interactionHandleRef.current.cancel();
-        interactionHandleRef.current = null;
-      }
 
       // Opacity'yi UI thread'de anlık 1'e at — JS commit beklemez,
       // hedef ekranın ilk render'ı kullanıcıya görünmez.
@@ -141,28 +164,20 @@ export default function RootNavigation({ onNavigationStateChange }) {
 
       const minVisibleMs =
         ROUTE_MIN_VISIBLE_MS[targetRouteName ?? ""] ?? DEFAULT_MIN_VISIBLE_MS;
-      const startedAt = Date.now();
 
-      interactionHandleRef.current = InteractionManager.runAfterInteractions(() => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const elapsed = Date.now() - startedAt;
-            const remaining = Math.max(0, minVisibleMs - elapsed);
-            hideTimeoutRef.current = setTimeout(() => {
-              overlayOpacity.value = withTiming(
-                0,
-                { duration: FADE_OUT_MS },
-                (finished) => {
-                  if (finished) {
-                    runOnJS(setOverlayActive)(false);
-                  }
-                }
-              );
-              hideTimeoutRef.current = null;
-            }, remaining);
-          });
-        });
-      });
+      // NOT: Önceden InteractionManager + setTimeout kullanılıyordu; ikisi de
+      // JS thread'e bağlıydı. WatchListScreen mount'unda fiyat akışı + ticker
+      // animasyonları JS'i tıkıyor → timer geç ya da hiç tetiklenmiyor →
+      // overlay takılıyor. withDelay + withTiming kombosu tamamen UI thread
+      // worklet'inde çalışır, JS thread durumundan etkilenmez.
+      overlayOpacity.value = withDelay(
+        minVisibleMs,
+        withTiming(0, { duration: FADE_OUT_MS }, (finished) => {
+          if (finished) {
+            runOnJS(setOverlayActive)(false);
+          }
+        })
+      );
     },
     [overlayOpacity]
   );
@@ -170,7 +185,6 @@ export default function RootNavigation({ onNavigationStateChange }) {
   useEffect(() => {
     return () => {
       if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-      if (interactionHandleRef.current) interactionHandleRef.current.cancel();
     };
   }, []);
 
@@ -183,10 +197,6 @@ export default function RootNavigation({ onNavigationStateChange }) {
         if (hideTimeoutRef.current) {
           clearTimeout(hideTimeoutRef.current);
           hideTimeoutRef.current = null;
-        }
-        if (interactionHandleRef.current) {
-          interactionHandleRef.current.cancel();
-          interactionHandleRef.current = null;
         }
         overlayOpacity.value = 1;
         setOverlayActive(true);
@@ -246,6 +256,7 @@ export default function RootNavigation({ onNavigationStateChange }) {
     // başarıyla tamamlanmış demektir. Tekrar login etmek var olan bağlantıyı
     // kapatıp yeniden açar → çift WS bağlantısı + demo modu uyumsuzluğu.
     // Sadece cold start (ws yok veya kapalı) durumunda login() çağırılır.
+    console.log("ws.readyState", ws?.readyState)
     if (ws && ws.readyState === 1) {
       return;
     }
@@ -263,19 +274,33 @@ export default function RootNavigation({ onNavigationStateChange }) {
     else {
       const auth = store.getState().auth;
       login(auth.user?.username, auth.user?.password, auth.demo, symbolLength || "0", "0");
-
+      console.log("auth user username", auth.user)
     }
   };
 
+  console.log("isAuthenticated", isAuthenticated)
   useEffect(() => {
     if (isAuthenticated) {
       symbolArrayLength();
+      // Safety net: Welcome'daki misafir akışı transitionOverlayRef.show() ile
+      // overlay'i açıp hide'ı onStateChange'in tetiklenmesine devrediyor.
+      // Auth ↔ Main stack switch sırasında `onStateChange` bazen back gibi
+      // algılanıp `triggerTransitionOverlay` atlanabiliyor → overlay opacity=1
+      // takılı kalıyor. Auth state oturduğunda overlay'in fade-out'unu burada
+      // garantiliyoruz.
+      const t = setTimeout(() => {
+        transitionOverlayRef.current?.hide?.();
+      }, 600);
+      return () => clearTimeout(t);
     } else {
       const auth = store.getState().auth;
       if (auth && auth.user && auth.user.username) {
         syncWatchlist();
         dispatch(logoutAuth());
-        ws?.close();
+        // WS kapatılmadan önce IdealClient modül state'ini temizle. username
+        // hala doluyken ws.close çağrılırsa onclose handler kendiliğinden
+        // reconnect tetikler (index.ts:417) → logout sonrası phantom WS.
+        idealClientLogout();
       }
     }
   }, [isAuthenticated, dispatch]);
@@ -304,6 +329,20 @@ export default function RootNavigation({ onNavigationStateChange }) {
     previousRouteRef.current = newRouteName;
 
     onNavigationStateChange(screenValue);
+
+    // Interstitial: rota değişiminde route-bazlı targeting'i set et,
+    // hazır ad varsa (frekans gate ok ise) göster. setNextTargeting
+    // mevcut preload'ı atıp yeni targeting ile yeniden preload başlatır.
+    // Excluded ekranlarda: deferred-show'un yanlışlıkla bu ekranda tetiklenmesini
+    // engellemek için önceki ekrandan kalan pendingShow niyetini iptal et.
+    // Self-managed ekranlarda: komponent kendi yönetiyor, dokunma.
+    if (NO_INTERSTITIAL_ROUTES.has(newRouteName)) {
+      cancelPendingShow();
+    } else if (!SELF_MANAGED_INTERSTITIAL_ROUTES.has(newRouteName)) {
+      const targeting = getInterstitialTargeting(newRouteName, currentRoute.params);
+      setNextTargeting(targeting);
+      maybeShowInterstitial();
+    }
   };
 
   const navigationTheme = useMemo(
@@ -454,9 +493,14 @@ export default function RootNavigation({ onNavigationStateChange }) {
               </>
             )}
           </Stack.Navigator>
+          {/*
+            barStyle temaya bağlı — aksi halde dark temada koyu ikonlar koyu
+            zemin üstünde okunmaz. backgroundColor verilmiyor: explicit renk
+            tema değişiminde Android'de anlık sıçramaya yol açıyordu, default
+            (sistem) bırakıldığında sorunsuz.
+          */}
           <StatusBar
             barStyle={theme.themeDetail === "dark" ? "light-content" : "dark-content"}
-            backgroundColor={theme.darkestBrand}
             translucent={false}
           />
         </BottomSheetProvider>

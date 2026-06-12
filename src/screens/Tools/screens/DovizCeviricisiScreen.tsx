@@ -1,4 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { withToolAds } from "../../../modules/ads/withToolAds";
+import ToolFooterAd from "../../../modules/ads/ToolFooterAd";
+import ToolMastheadAd from "../../../modules/ads/ToolMastheadAd";
 import {
   View,
   Text,
@@ -97,30 +100,46 @@ const DovizCeviricisiScreen = () => {
   }, [requiredPairs]);
 
   // İki para birimi arası kur hesaplama: önce direkt, yoksa USD pivot.
-  const getRate = useCallback((): number => {
-    if (!fromCurrency || !toCurrency) return 0;
-    if (fromCurrency.code === toCurrency.code) return 1;
+  // `field` parametresiyle aynı mantığı dayClose üzerinden de çalıştırıp
+  // günlük değişim yüzdesini hesaplıyoruz.
+  const getRateUsing = useCallback(
+    (field: "lastPrice" | "dayClose"): number => {
+      if (!fromCurrency || !toCurrency) return 0;
+      if (fromCurrency.code === toCurrency.code) return 1;
 
-    const direct = findPairCode(fromCurrency.code, toCurrency.code);
-    if (direct) {
-      const lp = prices[direct.code]?.lastPrice;
-      if (!lp || lp <= 0) return 0;
-      return direct.inverted ? 1 / lp : lp;
-    }
+      const direct = findPairCode(fromCurrency.code, toCurrency.code);
+      if (direct) {
+        const v = prices[direct.code]?.[field];
+        if (!v || v <= 0) return 0;
+        return direct.inverted ? 1 / v : v;
+      }
 
-    // USD pivot
-    const a = findPairCode(fromCurrency.code, "USD");
-    const b = findPairCode("USD", toCurrency.code);
-    if (!a || !b) return 0;
-    const ap = prices[a.code]?.lastPrice;
-    const bp = prices[b.code]?.lastPrice;
-    if (!ap || !bp || ap <= 0 || bp <= 0) return 0;
-    const fromToUsd = a.inverted ? 1 / ap : ap;
-    const usdToTarget = b.inverted ? 1 / bp : bp;
-    return fromToUsd * usdToTarget;
-  }, [prices, fromCurrency, toCurrency]);
+      const a = findPairCode(fromCurrency.code, "USD");
+      const b = findPairCode("USD", toCurrency.code);
+      if (!a || !b) return 0;
+      const ap = prices[a.code]?.[field];
+      const bp = prices[b.code]?.[field];
+      if (!ap || !bp || ap <= 0 || bp <= 0) return 0;
+      const fromToUsd = a.inverted ? 1 / ap : ap;
+      const usdToTarget = b.inverted ? 1 / bp : bp;
+      return fromToUsd * usdToTarget;
+    },
+    [prices, fromCurrency, toCurrency]
+  );
 
-  const rate = getRate();
+  const rate = getRateUsing("lastPrice");
+  const prevRate = getRateUsing("dayClose");
+  const percent =
+    prevRate > 0 && rate > 0 ? ((rate - prevRate) / prevRate) * 100 : 0;
+
+  const updatedAt = useMemo(() => {
+    let latest = 0;
+    requiredPairs.forEach((c) => {
+      const t = prices[c]?.updatedAt;
+      if (t && t > latest) latest = t;
+    });
+    return latest;
+  }, [prices, requiredPairs]);
 
   const parse = (v: string) => {
     const n = parseFloat(v.replace(",", "."));
@@ -132,6 +151,13 @@ const DovizCeviricisiScreen = () => {
       minimumFractionDigits: 2,
       maximumFractionDigits: 4,
     });
+
+  const fmtTime = (ts: number) => {
+    const d = new Date(ts);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  };
 
   const handleTopChange = (v: string) => {
     setTopValue(v);
@@ -181,14 +207,60 @@ const DovizCeviricisiScreen = () => {
     resetInputs();
   };
 
-  const muted = isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)";
-  const fieldBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
-  const chipBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  // Renkler
+  const muted = isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)";
+  const cardBg = isDark ? "#1F262E" : "#FFFFFF";
+  const cardBorder = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
+  const chipBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)";
   const modalBg = isDark ? "#1A1F25" : "#FFFFFF";
-  const sepColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
+  const sepColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
   const accent = "#059669";
-  const accentSoft = isDark ? "rgba(5,150,105,0.08)" : "rgba(5,150,105,0.06)";
+  const accentSoft = isDark ? "rgba(5,150,105,0.10)" : "rgba(5,150,105,0.08)";
   const placeholder = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)";
+
+  // Günlük değişim göstergesi
+  const isUp = percent > 0;
+  const isDown = percent < 0;
+  const changeColor = isUp ? theme.green : isDown ? theme.red : muted;
+  const changeBg = isUp
+    ? isDark
+      ? "rgba(5,196,107,0.12)"
+      : "rgba(5,150,105,0.08)"
+    : isDown
+    ? isDark
+      ? "rgba(255,77,77,0.12)"
+      : "rgba(229,52,46,0.08)"
+    : "transparent";
+  const changeIcon = isUp ? "arrow-up" : isDown ? "arrow-down" : "remove";
+
+  const renderCurrencyChip = (
+    currency: Currency,
+    onPress: () => void
+  ) => (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={[s.chip, { backgroundColor: chipBg }]}
+    >
+      <View style={s.chipFlag}>
+        <Flag code={currency.countryCode} type="flat" size={24} />
+      </View>
+      <Text
+        style={[
+          s.chipText,
+          { color: theme.white, fontFamily: theme.boldFont },
+        ]}
+      >
+        {currency.code}
+      </Text>
+      <Ionicons
+        name="chevron-down"
+        size={14}
+        color={muted}
+        style={{ marginLeft: 4 }}
+      />
+    </TouchableOpacity>
+  );
 
   const renderModal = (
     visible: boolean,
@@ -283,6 +355,8 @@ const DovizCeviricisiScreen = () => {
     </Modal>
   );
 
+  const sameCurrency = fromCurrency.code === toCurrency.code;
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: theme.darkerBrand }}
@@ -293,154 +367,154 @@ const DovizCeviricisiScreen = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Üst — kaynak para */}
-        <View style={[s.converterRow, { backgroundColor: fieldBg }]}>
-          <TextInput
-            style={[
-              s.bigInput,
-              { color: theme.white, fontFamily: theme.boldFont },
-            ]}
-            value={topValue}
-            onChangeText={handleTopChange}
-            onFocus={() => setActiveInput("top")}
-            keyboardType="decimal-pad"
-            placeholder="0"
-            placeholderTextColor={placeholder}
-          />
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setFromModalVisible(true)}
-            style={[s.chip, { backgroundColor: chipBg }]}
-          >
-            <View style={s.chipFlag}>
-              <Flag code={fromCurrency.countryCode} type="flat" size={24} />
+        <ToolMastheadAd />
+        {/* Birleşik kart */}
+        <View
+          style={[
+            s.card,
+            { backgroundColor: cardBg, borderColor: cardBorder },
+          ]}
+        >
+          {/* Üst — kaynak */}
+          <View style={s.section}>
+            <View style={s.sectionRow}>
+              <TextInput
+                style={[
+                  s.bigInput,
+                  { color: theme.white, fontFamily: theme.boldFont },
+                ]}
+                value={topValue}
+                onChangeText={handleTopChange}
+                onFocus={() => setActiveInput("top")}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor={placeholder}
+              />
+              {renderCurrencyChip(fromCurrency, () =>
+                setFromModalVisible(true)
+              )}
             </View>
             <Text
               style={[
-                s.chipText,
-                { color: theme.white, fontFamily: theme.boldFont },
+                s.sectionLabel,
+                { color: muted, fontFamily: theme.regularFont },
               ]}
             >
-              {fromCurrency.code}
+              {fromCurrency.label}
             </Text>
-            <Ionicons
-              name="chevron-down"
-              size={14}
-              color={muted}
-              style={{ marginLeft: 4 }}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <Text
-          style={[
-            s.subLabel,
-            { color: muted, fontFamily: theme.regularFont },
-          ]}
-        >
-          {fromCurrency.label}
-        </Text>
-
-        {/* Swap */}
-        <View style={s.swapWrap}>
-          <View style={[s.swapLine, { backgroundColor: sepColor }]} />
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={handleSwap}
-            style={[
-              s.swapBtn,
-              { backgroundColor: fieldBg, borderColor: sepColor },
-            ]}
-          >
-            <Ionicons name="swap-vertical" size={20} color={accent} />
-          </TouchableOpacity>
-          <View style={[s.swapLine, { backgroundColor: sepColor }]} />
-        </View>
-
-        {/* Alt — hedef para */}
-        <View style={[s.converterRow, { backgroundColor: fieldBg }]}>
-          <TextInput
-            style={[
-              s.bigInput,
-              { color: theme.white, fontFamily: theme.boldFont },
-            ]}
-            value={bottomValue}
-            onChangeText={handleBottomChange}
-            onFocus={() => setActiveInput("bottom")}
-            keyboardType="decimal-pad"
-            placeholder="0"
-            placeholderTextColor={placeholder}
-          />
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setToModalVisible(true)}
-            style={[s.chip, { backgroundColor: chipBg }]}
-          >
-            <View style={s.chipFlag}>
-              <Flag code={toCurrency.countryCode} type="flat" size={24} />
-            </View>
-            <Text
-              style={[
-                s.chipText,
-                { color: theme.white, fontFamily: theme.boldFont },
-              ]}
-            >
-              {toCurrency.code}
-            </Text>
-            <Ionicons
-              name="chevron-down"
-              size={14}
-              color={muted}
-              style={{ marginLeft: 4 }}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <Text
-          style={[
-            s.subLabel,
-            { color: muted, fontFamily: theme.regularFont },
-          ]}
-        >
-          {toCurrency.label}
-        </Text>
-
-        {/* Kur bilgisi */}
-        {fromCurrency.code !== toCurrency.code && (
-          <View
-            style={[
-              s.rateCard,
-              {
-                backgroundColor: accentSoft,
-                borderColor: isDark
-                  ? "rgba(5,150,105,0.15)"
-                  : "rgba(5,150,105,0.1)",
-              },
-            ]}
-          >
-            {rate > 0 ? (
-              <Text
-                style={[
-                  s.rateText,
-                  { color: accent, fontFamily: theme.boldFont },
-                ]}
-              >
-                1 {fromCurrency.code} = {fmt(rate)} {toCurrency.code}
-              </Text>
-            ) : (
-              <Text
-                style={[
-                  s.rateText,
-                  { color: muted, fontFamily: theme.regularFont },
-                ]}
-              >
-                Kur verisi bekleniyor…
-              </Text>
-            )}
           </View>
-        )}
+
+          {/* Ortada swap butonu olan ince ayraç */}
+          <View style={s.swapWrap}>
+            <View style={[s.swapLine, { backgroundColor: sepColor }]} />
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handleSwap}
+              style={[
+                s.swapBtn,
+                {
+                  backgroundColor: cardBg,
+                  borderColor: sepColor,
+                },
+              ]}
+            >
+              <Ionicons name="swap-vertical" size={20} color={accent} />
+            </TouchableOpacity>
+            <View style={[s.swapLine, { backgroundColor: sepColor }]} />
+          </View>
+
+          {/* Alt — hedef */}
+          <View style={s.section}>
+            <View style={s.sectionRow}>
+              <TextInput
+                style={[
+                  s.bigInput,
+                  { color: theme.white, fontFamily: theme.boldFont },
+                ]}
+                value={bottomValue}
+                onChangeText={handleBottomChange}
+                onFocus={() => setActiveInput("bottom")}
+                keyboardType="decimal-pad"
+                placeholder="0"
+                placeholderTextColor={placeholder}
+              />
+              {renderCurrencyChip(toCurrency, () => setToModalVisible(true))}
+            </View>
+            <Text
+              style={[
+                s.sectionLabel,
+                { color: muted, fontFamily: theme.regularFont },
+              ]}
+            >
+              {toCurrency.label}
+            </Text>
+          </View>
+
+          {/* Kart içi alt: kur + günlük değişim */}
+          {!sameCurrency && (
+            <View style={[s.rateBlock, { borderTopColor: sepColor }]}>
+              {rate > 0 ? (
+                <>
+                  <View style={s.rateMainRow}>
+                    <Text
+                      style={[
+                        s.rateText,
+                        { color: theme.white, fontFamily: theme.boldFont },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      1 {fromCurrency.code} = {fmt(rate)} {toCurrency.code}
+                    </Text>
+                    {prevRate > 0 && (
+                      <View
+                        style={[s.changeBadge, { backgroundColor: changeBg }]}
+                      >
+                        <Ionicons
+                          name={changeIcon}
+                          size={11}
+                          color={changeColor}
+                        />
+                        <Text
+                          style={[
+                            s.changeText,
+                            {
+                              color: changeColor,
+                              fontFamily: theme.boldFont,
+                            },
+                          ]}
+                        >
+                          %{Math.abs(percent).toFixed(2)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  {updatedAt > 0 && (
+                    <Text
+                      style={[
+                        s.updatedText,
+                        { color: muted, fontFamily: theme.regularFont },
+                      ]}
+                    >
+                      Son güncelleme · {fmtTime(updatedAt)}
+                    </Text>
+                  )}
+                </>
+              ) : (
+                <Text
+                  style={[
+                    s.rateText,
+                    { color: muted, fontFamily: theme.regularFont },
+                  ]}
+                >
+                  Kur verisi bekleniyor…
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
 
         <View style={{ height: 40 }} />
+        <ToolFooterAd />
       </ScrollView>
 
       {renderModal(
@@ -462,49 +536,95 @@ const DovizCeviricisiScreen = () => {
 };
 
 const s = StyleSheet.create({
-  wrap: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 },
-  converterRow: {
+  wrap: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 40 },
+  card: {
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 6,
+    // iOS gölge
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    // Android gölge
+    elevation: 1,
+  },
+  section: { paddingVertical: 8 },
+  sectionRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
-    paddingLeft: 20,
-    paddingRight: 6,
-    height: 64,
   },
-  bigInput: { flex: 1, fontSize: 28, letterSpacing: 0.5, paddingVertical: 0 },
+  bigInput: {
+    flex: 1,
+    fontSize: 22,
+    letterSpacing: 0.3,
+    paddingVertical: 0,
+    paddingRight: 8,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    marginTop: 6,
+    letterSpacing: 0.2,
+  },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
   },
   chipText: { fontSize: 14, letterSpacing: 0.5 },
-  subLabel: { fontSize: 12, marginTop: 6, marginLeft: 20, letterSpacing: 0.2 },
+  chipFlag: {
+    width: 24,
+    height: 24,
+    overflow: "hidden",
+    marginRight: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   swapWrap: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 16,
-    paddingHorizontal: 20,
+    marginVertical: 6,
   },
   swapLine: { flex: 1, height: StyleSheet.hairlineWidth },
   swapBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
-    marginHorizontal: 12,
+    marginHorizontal: 10,
   },
-  rateCard: {
-    marginTop: 24,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 14,
+  rateBlock: {
+    marginTop: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  rateMainRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
-  rateText: { fontSize: 14, letterSpacing: 0.3 },
+  rateText: { fontSize: 13.5, letterSpacing: 0.3, flexShrink: 1 },
+  changeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginLeft: 8,
+  },
+  changeText: {
+    fontSize: 11.5,
+    letterSpacing: 0.3,
+    marginLeft: 3,
+  },
+  updatedText: { fontSize: 11, marginTop: 6, letterSpacing: 0.2 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
@@ -552,14 +672,6 @@ const s = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
-  chipFlag: {
-    width: 24,
-    height: 24,
-    overflow: "hidden",
-    marginRight: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });
 
-export default DovizCeviricisiScreen;
+export default withToolAds(DovizCeviricisiScreen, "doviz-ceviricisi");

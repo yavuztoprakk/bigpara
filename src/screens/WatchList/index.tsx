@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { useSelector, useDispatch } from "react-redux";
+import axios from "axios";
 import HeaderSwitcherResultsContainer from "../../containers/HeaderSwitcherResultsContainer";
 import flashMessage from "../../modules/flashMessage";
 import ListContainer from "../Markets/containers/ListContainer";
-import ListDelayedBadge from "../Markets/components/ListDelayedBadge";
 import Blank from "./Blank";
 import { remove } from "./modules/watchlists";
 import SelectorTrigger from "./SelectorTrigger";
@@ -14,18 +14,49 @@ import symbolSend from "../../modules/IdealClient/request/symbolSend";
 import { syncWatchlists } from "../../modules/FintablesClient";
 import { useTheme } from "../../theme/ThemeContext";
 import PushNotificationRedirector from "../Markets/components/PushNotificationRedirector";
+import MastheadBanner from "../../modules/ads/MastheadBanner";
+import type { AdTargeting } from "../../modules/ads/config";
+import { NewsCarousel, API_URL as NEWS_API_URL, type NewsItem } from "../News/components/News";
+
+// Ekranım = WatchList ekranı → anasayfa bucket (Excel'deki ad unit'ler)
+const AD_TARGETING: AdTargeting = {
+  bigpara_kategori: "ekranim",
+  catlist: ["ekranim"],
+};
 
 const WatchList = ({ navigation }: { navigation: any }) => {
   const { theme } = useTheme();
+  const isDark = theme.themeDetail === "dark";
   const styles = createStyles(theme);
   const [oldCount, setOldCount] = useState<number | null>(null);
   const dispatch = useDispatch();
+
+  // Manşet slider'ı için haber listesi (Haberler ekranındaki carousel ile aynı API).
+  const [headlines, setHeadlines] = useState<NewsItem[]>([]);
+  useEffect(() => {
+    let active = true;
+    axios
+      .get(NEWS_API_URL, { timeout: 7000 })
+      .then((res) => {
+        if (active) setHeadlines(res.data?.DataSourceContent?.Contents ?? []);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  const openNewsDetail = useCallback(
+    (item: NewsItem) => {
+      // WatchList stack'i içinde NewsDetail aç — header'da geri butonu ve
+      // geri tıklayınca Ekranım'a döner.
+      navigation.navigate("NewsDetail", { url: item.Url, title: item.Title });
+    },
+    [navigation]
+  );
 
   // Redux state'lerini alıyoruz
   const lists = useSelector((state: any) => state.watchLists.lists);
   const selectedIndex = useSelector((state: any) => state.watchLists.selectedIndex);
   const username = useSelector((state: any) => state.auth?.user?.username);
-  const isDemo = useSelector((state: any) => state.auth?.demo);
   const query = useSelector((state: any) => state.ui.search.query.trim());
 
   const canRemove = selectedIndex > 0;
@@ -95,6 +126,17 @@ const WatchList = ({ navigation }: { navigation: any }) => {
     <View style={styles.container}>
       <PushNotificationRedirector navigation={navigation} />
 
+      <MastheadBanner bucket="anasayfa" targeting={AD_TARGETING} />
+
+      {headlines.length > 0 && (
+        <NewsCarousel
+          data={headlines}
+          isDark={isDark}
+          theme={theme}
+          onItemPress={openNewsDetail}
+        />
+      )}
+
       <View style={styles.filterBar}>
         <SelectorTrigger
           list={lists[selectedIndex]}
@@ -120,10 +162,6 @@ const WatchList = ({ navigation }: { navigation: any }) => {
           />
         )}
       </View>
-
-      {isDemo && lists[selectedIndex]?.codes?.length > 0 && (
-        <ListDelayedBadge navigation={navigation} />
-      )}
 
       {query ? (
         <HeaderSwitcherResultsContainer

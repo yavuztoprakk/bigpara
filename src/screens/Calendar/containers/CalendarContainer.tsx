@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { withToolAds } from "../../../modules/ads/withToolAds";
 import { useSelector, useDispatch } from "react-redux";
 import { useFocusEffect } from "@react-navigation/native";
 import { load, defaultPeriodOption, defaultCountryOption, defaultRatingOption, resetCalendar } from "../modules/list";
@@ -49,4 +50,4 @@ const CalendarContainer = ({ navigation }: any) => {
 	return <Calendar {...calendarProps} />;
 };
 
-export default CalendarContainer;
+export default withToolAds(CalendarContainer, "ekonomik-takvim");

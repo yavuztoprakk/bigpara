@@ -180,7 +180,7 @@ const CompleteProfile = () => {
     store.dispatch(setAuthLoading({ remember: false, demo: false }));
     // Race kondisyonunu kırmak için kısa gecikme (mevcut Register.tsx:250-252 örüntüsü)
     setTimeout(() => {
-      idealClientLogin(`usergck_${email.trim()}`, "ColendiMenkul1", true, "0", "0");
+      idealClientLogin(`usergck_${email.trim()}`, "password1", true, "0", "0");
     }, 400);
   };
 
