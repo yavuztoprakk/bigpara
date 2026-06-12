@@ -36,6 +36,8 @@
     <string>4</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
+    <key>FirebaseAutomaticScreenReportingEnabled</key>
+    <false/>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>

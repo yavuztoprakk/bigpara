@@ -2,6 +2,10 @@ PODS:
   - BEMCheckBox (1.4.1)
   - BVLinearGradient (2.8.3):
     - React-Core
+  - CapraAnalytics (3.2.0)
+  - CapraAnalyticsModule (1.0.0):
+    - CapraAnalytics
+    - ExpoModulesCore
   - EASClient (1.0.8):
     - ExpoModulesCore
   - EXApplication (7.0.8):
@@ -2389,6 +2393,8 @@ PODS:
 
 DEPENDENCIES:
   - BVLinearGradient (from `../node_modules/react-native-linear-gradient`)
+  - CapraAnalytics (from `https://github.com/capra-solutions/analytics-ios-sdk.git`, tag `3.2.0`)
+  - CapraAnalyticsModule (from `../modules/capra-analytics/ios`)
   - EASClient (from `../node_modules/expo-eas-client/ios`)
   - EXApplication (from `../node_modules/expo-application/ios`)
   - EXAV (from `../node_modules/expo-av/ios`)
@@ -2532,6 +2538,11 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   BVLinearGradient:
     :path: "../node_modules/react-native-linear-gradient"
+  CapraAnalytics:
+    :git: https://github.com/capra-solutions/analytics-ios-sdk.git
+    :tag: 3.2.0
+  CapraAnalyticsModule:
+    :path: "../modules/capra-analytics/ios"
   EASClient:
     :path: "../node_modules/expo-eas-client/ios"
   EXApplication:
@@ -2758,9 +2769,16 @@ EXTERNAL SOURCES:
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
+CHECKOUT OPTIONS:
+  CapraAnalytics:
+    :git: https://github.com/capra-solutions/analytics-ios-sdk.git
+    :tag: 3.2.0
+
 SPEC CHECKSUMS:
   BEMCheckBox: 5ba6e37ade3d3657b36caecc35c8b75c6c2b1a4e
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
+  CapraAnalytics: 8ea03b4a424d2cafeed3520c7f56035b30a555b8
+  CapraAnalyticsModule: 939614d558787ad1efa753c244a5ad25f92f424e
   EASClient: 40dd9e740684782610c49becab2643782ea1a20c
   EXApplication: 1e98d4b1dccdf30627f92917f4b2c5a53c330e5f
   EXAV: b60fcf142fae6684d295bc28cd7cfcb3335570ea
@@ -2896,6 +2914,6 @@ SPEC CHECKSUMS:
   RNWorklets: d900495a87814731cc69ea5381eb29e4ef4942e2
   Yoga: cc4a6600d61e4e9276e860d4d68eebb834a050ba
 
-PODFILE CHECKSUM: e4c1239ae1e850938808b627777abdd41c0e59ff
+PODFILE CHECKSUM: 9dfbfb9e0afb842fc92ea03fae736d5b9a369c40
 
 COCOAPODS: 1.16.2

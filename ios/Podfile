@@ -25,6 +25,10 @@ target 'Bigpara' do
 
   use_expo_modules!
 
+  # Capra Analytics iOS SDK - Trunk'a yayınlanmadığı için git source ile çekiliyor.
+  # Capra Expo local module bu pod'u dependency olarak listeliyor.
+  pod 'CapraAnalytics', :git => 'https://github.com/capra-solutions/analytics-ios-sdk.git', :tag => '3.2.0'
+
   config_command = [
     'node',
     '--no-warnings',

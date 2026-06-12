@@ -1,6 +1,37 @@
 # BigPara — Durum Raporu
 
-**Son güncelleme**: 2026-05-13
+**Son güncelleme**: 2026-06-12
+
+---
+
+## Yeni: Analytics + Capra SDK Entegrasyonu (commit bekliyor)
+
+BI ekibi `screen_view`, `bottom_menu`, `Purchases` event'lerini GA4'te (manuel) ve **Capra Analytics** (Demirören kendi BI altyapısı, `analytics-ingestion.demirorenmedya.com`) backend'inde paralel istiyor.
+
+### Eklenenler
+- `src/modules/screenNames.ts` — route → `/bigpara/xxx` mapping (tek kaynak)
+- `src/modules/analytics.ts` — `trackScreenView`, `trackBottomMenu`, `trackPurchase` helper'ları + dedup ref. Hem Firebase Analytics hem Capra'ya paralel push
+- `modules/capra-analytics/` — Expo local module:
+  - iOS Swift bridge (`pod 'CapraAnalytics', '~> 3.0'`)
+  - Android Kotlin bridge (`com.github.capra-solutions:analytics-android-sdk:2.5.3`)
+  - TS interface `requireNativeModule<…>("CapraAnalytics")`
+- `src/routes/TabNavigator.tsx` → CustomTabBar `onPress` → `trackBottomMenu(getScreenName(route.name))`
+- `BaseApp.tsx` → app açılışında `CapraAnalytics.configure(siteId, endpoint)` (extra'dan okur, boşsa no-op)
+- `ios/Bigpara/Info.plist` + `app.json` infoPlist → `FirebaseAutomaticScreenReportingEnabled = false` (çift sayım engeli)
+- `android/app/src/main/AndroidManifest.xml` → `google_analytics_automatic_screen_reporting_enabled = false`
+
+### Bekleyen
+- BI'dan `capraSiteIdIos` / `capraSiteIdAndroid` değerleri → `app.json` extra'ya yazılacak
+- `expo prebuild --clean` + `pod install` → Capra native modülünün autolink olması için
+- Lisans satın alma ekranı bağlandığında `trackPurchase(...)` çağrısı
+
+### Doğrulama (siteId geldikten sonra)
+1. GA4 DebugView'da `screen_view` tek sayımla görünmeli (otomatik kapalı + dedup)
+2. Tab tıklamalarında `bottom_menu` event'i `bottom_name=/bigpara/...`
+3. Capra dashboard / network sniff → `POST /e` istekleri
+4. Rapor "Page title and screen name" boyutunda `/bigpara/xxx` formatı (sınıf adı yok)
+
+---
 
 > Yeni session başlattığında bu dosya + `git log --oneline -20` + `docs/perf/PLAN.md` ile durumu hızlıca toparlayabilirsin.
 

@@ -17,6 +17,7 @@ import FlashMessage from "react-native-flash-message";
 import * as numeral from "numeral";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { handleNavigationStateChange } from "./src/modules/analytics";
+import Constants from "expo-constants";
 import {
   SafeAreaProvider,
   initialWindowMetrics,
@@ -81,6 +82,30 @@ const App = () => {
     activateKeepAwakeAsync().catch((error) => {
       console.error("activateKeepAwakeAsync failed:", error);
     });
+  }, []);
+
+  // Capra Analytics SDK initialize — BI tarafı iOS/Android için aynı siteId
+  // kullanmamızı istedi (cihaz kimliği zaten ayrı geldiği için platform
+  // ayrımı gerekmiyor). Değer boşsa configure atlanır (no-op).
+  // Native modül henüz prebuild edilmemişse import sırasında throw olur,
+  // catch ile sessizce yutarız → JS tarafı çalışmaya devam eder.
+  useEffect(() => {
+    const extra = (Constants.expoConfig?.extra ?? {}) as {
+      capraSiteId?: string;
+      capraEndpoint?: string;
+    };
+    const { capraSiteId: siteId, capraEndpoint: endpoint } = extra;
+    if (!siteId || !endpoint) {
+      if (__DEV__) console.log("[Capra] siteId/endpoint boş — configure atlandı");
+      return;
+    }
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const CapraAnalytics = require("./modules/capra-analytics").default;
+      CapraAnalytics.configure(siteId, endpoint);
+    } catch (e) {
+      console.warn("[Capra] configure failed:", (e as Error)?.message);
+    }
   }, []);
 
   // useEffect(() => {

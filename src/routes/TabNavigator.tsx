@@ -50,6 +50,8 @@ import DovizCeviricisiScreen from "../screens/Tools/screens/DovizCeviricisiScree
 import AltinHesaplayiciScreen from "../screens/Tools/screens/AltinHesaplayiciScreen";
 import YeniYatirimScreen from "../screens/Tools/screens/YeniYatirimScreen";
 import SembolSecimScreen from "../screens/Tools/screens/SembolSecimScreen";
+import { trackBottomMenu } from "../modules/analytics";
+import { getScreenName } from "../modules/screenNames";
 
 const HEADER_LOGO_SOURCE = require("../../assets/bigpara/headerLogo.png");
 
@@ -334,6 +336,9 @@ function CustomTabBar({ state, navigation, theme }: any) {
           const label = TAB_LABELS[route.name] ?? route.name;
 
           const onPress = () => {
+            // BI isteği: alt menüye her tıklamada bottom_menu event'i,
+            // bottom_name = ekranın canonical screen_name değeri.
+            trackBottomMenu(getScreenName(route.name));
             const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
             if (!focused && !event.defaultPrevented) {
               navigation.navigate(route.name);

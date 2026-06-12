@@ -1,0 +1,7 @@
+{
+  "name": "capra-analytics",
+  "version": "1.0.0",
+  "description": "BigPara Capra Analytics native bridge (Expo local module)",
+  "main": "index.ts",
+  "private": true
+}

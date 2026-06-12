@@ -26,7 +26,8 @@
           "fetch",
           "remote-notification"
         ],
-        "FirebaseAppDelegateProxyEnabled": true
+        "FirebaseAppDelegateProxyEnabled": true,
+        "FirebaseAutomaticScreenReportingEnabled": false
       },
       "entitlements": {
         "aps-environment": "development"
@@ -75,7 +76,9 @@
     "extra": {
       "eas": {
         "projectId": "624be4c9-e5a6-4ca9-8ff4-5023b221185a"
-      }
+      },
+      "capraSiteId": "bigpara",
+      "capraEndpoint": "https://analytics-ingestion.demirorenmedya.com/e"
     },
     "runtimeVersion": "1.0.0",
     "updates": {
